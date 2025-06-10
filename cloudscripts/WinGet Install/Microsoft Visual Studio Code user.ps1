@@ -32,7 +32,7 @@ if (Get-Command 'WinGet' -ErrorAction SilentlyContinue) {
     # winget show --id $id --versions
     
     # Install
-    winget install --id $id --exact --accept-source-agreements --accept-package-agreements --override '/SILENT /mergetasks="!runcode,addcontextmenufiles,addcontextmenufolders"'
+    winget install --id $id --exact --accept-source-agreements --accept-package-agreements --override '/SILENT /mergetasks="!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
 }
 else {
     Write-Error -Message 'WinGet is not installed.'

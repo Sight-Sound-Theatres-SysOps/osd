@@ -1,6 +1,6 @@
 <#PSScriptInfo
 .VERSION 23.6.1.2
-.GUID 57b2b6a5-bda6-43c4-a9be-14f54135309d
+.GUID ff1dbb06-fe2d-49d3-bb3f-ec3565d6aaa1
 .AUTHOR David Segura
 .COMPANYNAME David Segura
 .COPYRIGHT (c) 2023 David Segura. All rights reserved.
@@ -21,7 +21,7 @@ Install Package using WinGet
 [CmdletBinding()]
 param(
     [ValidateNotNullOrEmpty()]
-    [string]$id = 'Microsoft.VisualStudioCode'
+    [string]$id = 'Microsoft.VisualStudioCode.Insiders'
 )
 
 if (Get-Command 'WinGet' -ErrorAction SilentlyContinue) {
@@ -32,7 +32,7 @@ if (Get-Command 'WinGet' -ErrorAction SilentlyContinue) {
     # winget show --id $id --versions
     
     # Install
-    winget install --id $id --exact --accept-source-agreements --accept-package-agreements --scope machine --override '/SILENT /mergetasks="!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
+    winget install --id $id --exact --accept-source-agreements --accept-package-agreements --override '/SILENT /mergetasks="!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
 }
 else {
     Write-Error -Message 'WinGet is not installed.'
