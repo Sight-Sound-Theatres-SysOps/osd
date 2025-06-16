@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.5.26.1'
+$ScriptVersion = '25.6.16.1'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -97,7 +97,7 @@ if ($WindowsPhase -eq 'AuditMode') {
 #region OOBE
 if ($WindowsPhase -eq 'OOBE') {
     #Load everything needed to setup a new computer and register to AutoPilot
-    Step-installCertificates
+    step-installCertificates
     step-setTimeZoneFromIP
     step-SetExecutionPolicy
     step-SetPowerShellProfile
@@ -107,17 +107,15 @@ if ($WindowsPhase -eq 'OOBE') {
     step-InstallPowerSHellModule -Name PSReadLine    
     #step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
     #step-InstallWinget
-    #osdcloud-StartOOBE -InstallWinget -WinGetUpgrade -ErrorAction SilentlyContinue
-    Step-desktopWallpaper
-    Step-InstallM365Apps    
-    Step-oobeSetDateTime
-    Step-oobeRegisterAutopilot 
-    Step-oobeRemoveAppxPackageAllUsers
-    Step-oobeSetUserRegSettings
-    Step-oobeSetDeviceRegSettings   
-    Step-oobeCreateLocalUser   
-    #Step-oobeDellDCU 
-    Step-oobeRestartComputer
+    step-desktopWallpaper
+    step-InstallM365Apps    
+    step-oobeSetDateTime
+    step-oobeRegisterAutopilot 
+    step-oobeRemoveAppxPackageAllUsers
+    step-oobeSetUserRegSettings
+    step-oobeSetDeviceRegSettings   
+    step-oobeCreateLocalUser
+    step-oobeRestartComputer
 
     $null = Stop-Transcript -ErrorAction Ignore
 }
