@@ -89,3 +89,52 @@ function step-oobeMenu_RegisterAutopilot {
 
     Write-Host -ForegroundColor Yellow "[-] Registering with Windows Autopilot"
 }
+
+function Test-AutopilotPassword {
+    param (
+        [string]$Password
+    )
+    $blobUrl = "https://ssintunedata.blob.core.windows.net/autopilot/autopilot.json.enc"
+    $tempFile = "$env:TEMP\autopilot.json.enc"
+    try { Invoke-WebRequest -Uri $blobUrl -OutFile $tempFile -ErrorAction Stop }
+    catch { return $false }
+
+    # Try decrypting
+    try {
+        $encryptedBytesWithSaltAndIV = [System.IO.File]::ReadAllBytes($tempFile)
+        $salt = $encryptedBytesWithSaltAndIV[0..15]
+        $iv = $encryptedBytesWithSaltAndIV[16..31]
+        $encryptedBytes = $encryptedBytesWithSaltAndIV[32..($encryptedBytesWithSaltAndIV.Length - 1)]
+
+        $aes = [System.Security.Cryptography.Aes]::Create()
+        $aes.KeySize = 256
+        $aes.BlockSize = 128
+        $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
+        $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
+
+        $passphraseBytes = [System.Text.Encoding]::UTF8.GetBytes($Password)
+        $keyDerivation = New-Object System.Security.Cryptography.Rfc2898DeriveBytes($passphraseBytes, $salt, 100000)
+        $aes.Key = $keyDerivation.GetBytes(32)
+        $aes.IV = $iv
+
+        $decryptor = $aes.CreateDecryptor()
+        $memoryStream = New-Object System.IO.MemoryStream
+        $cryptoStream = New-Object System.Security.Cryptography.CryptoStream($memoryStream, $decryptor, [System.Security.Cryptography.CryptoStreamMode]::Write)
+
+        $cryptoStream.Write($encryptedBytes, 0, $encryptedBytes.Length)
+        $cryptoStream.FlushFinalBlock()
+
+        $decryptedBytes = $memoryStream.ToArray()
+        $decryptedText = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
+
+        $cryptoStream.Close(); $memoryStream.Close(); $aes.Dispose()
+        Remove-Item $tempFile -Force
+
+        $jsonContent = $decryptedText | ConvertFrom-Json
+        # Optionally return the credentials object here
+        return $jsonContent
+    } catch {
+        Remove-Item $tempFile -Force
+        return $false
+    }
+}

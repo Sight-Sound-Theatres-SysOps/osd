@@ -104,21 +104,44 @@ if ($WindowsPhase -eq 'OOBE') {
     step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
     step-InstallWinget
     step-desktopWallpaper
-    $result = step-oobemenu
-    # Run actions based on selections
-    if ($result) {
-    if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps | Out-Null}
-    if ($result.InstallUmbrella) { step-oobeMenu_InstallUmbrella | Out-Null}
-    if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd | Out-Null}
-    if ($result.ClearTPM)        { step-oobeMenu_ClearTPM | Out-Null}
-    if ($result.EnrollAutopilot) {
-        #step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
-        Write-Host GroupTag: $result.GroupTag
-        Write-Host Group: $result.Group
-        Write-Host ComputerName: $result.ComputerName
-        Write-Host EnrollmentPassword: $result.EnrollmentPassword
+        $valid = $false
+        while (-not $valid) {
+        $result = step-oobemenu
+
+        if (-not $result) { break } # User cancelled out of the menu
+
+        $apPassed = $true
+        if ($result.EnrollAutopilot) {
+            $plainPass = $result.EnrollmentPassword
+            $apTest = Test-AutopilotPassword -Password $plainPass
+            if (-not $apTest) {
+                [System.Windows.MessageBox]::Show(
+                    "Autopilot password is incorrect. Please try again.",
+                    "Autopilot Error",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Error
+                )
+                continue  # Loop again to retry the menu!
+            }
+            $apPassed = $apTest
         }
-    }
+        $valid = $true
+        }
+
+        # Now outside the loop, run installs if the user didn't cancel
+        if ($result) {
+            if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps | Out-Null }
+            if ($result.InstallUmbrella) { step-oobeMenu_InstallUmbrella | Out-Null }
+            if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd | Out-Null }
+            if ($result.ClearTPM)        { step-oobeMenu_ClearTPM | Out-Null }
+            if ($result.EnrollAutopilot) {
+                # step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
+                Write-Host GroupTag: $result.GroupTag
+                Write-Host Group: $result.Group
+                Write-Host ComputerName: $result.ComputerName
+                Write-Host EnrollmentPassword: $result.EnrollmentPassword
+            }
+        }
     #step-InstallM365Apps    
     #step-oobeSetDateTime
     #step-oobeRegisterAutopilot 
