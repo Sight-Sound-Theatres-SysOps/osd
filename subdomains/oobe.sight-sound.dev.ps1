@@ -157,9 +157,9 @@ try {
     if ($txtBios)         { $txtBios.Text          = $bios.SMBIOSBIOSVersion }
     if ($txtManModel)     { $txtManModel.Text      = "$($compSys.Manufacturer) - $($compSys.Model)" }
 
-    # Disable Dell Command Update if not Dell and make text visibly disabled
-    if ($txtManufacturer -and $chkDellCmd) {
-        if ($txtManufacturer.Text -ne "Dell Inc.") {
+    # Use WMI value for Dell detection!
+    if ($chkDellCmd) {
+        if ($compSys.Manufacturer -ne "Dell Inc.") {
             $chkDellCmd.IsEnabled = $false
             $chkDellCmd.ToolTip = "This option is only available on Dell systems."
             $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
