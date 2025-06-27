@@ -1,3 +1,5 @@
+Write-Host -ForegroundColor Green "[+] Loading OOBE Configuration nenu"
+
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 
@@ -11,33 +13,68 @@ function Get-TpmVersion {
 
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="Sight &amp; Sound - OOBE Configuration" Height="520" Width="780" WindowStartupLocation="CenterScreen" Background="#FF1E1E1E">
+        Title="Sight &amp; Sound - OOBE Configuration" Height="500" Width="830" WindowStartupLocation="CenterScreen" Background="#FF1E1E1E">
     <Grid Margin="14">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2.2*" />
+            <ColumnDefinition Width="2.3*" />
             <ColumnDefinition Width="5*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
-            <RowDefinition Height="90" />
+            <RowDefinition Height="110" />
         </Grid.RowDefinitions>
-        <!-- Left Panel: Checkboxes, TPM, and Clear TPM -->
+        <!-- Left Panel: Computer Details, Checkboxes, Winget, TPM, and Clear TPM -->
         <Grid Grid.Column="0" Grid.RowSpan="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />  <!-- TPM label -->
-                <RowDefinition Height="Auto" />  <!-- Clear TPM checkbox -->
+                <RowDefinition Height="Auto" /> <!-- Computer details -->
+                <RowDefinition Height="*" />    <!-- Checkboxes -->
+                <RowDefinition Height="Auto" /> <!-- Winget -->
+                <RowDefinition Height="Auto" /> <!-- TPM label -->
+                <RowDefinition Height="Auto" /> <!-- Clear TPM checkbox -->
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="0" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,0,10,0">
+            <!-- Computer Details Box -->
+            <Border Grid.Row="0" Margin="0,0,10,20" Padding="16" CornerRadius="10"
+                    Background="#FF292939" HorizontalAlignment="Center" Width="330">
+                <StackPanel>
+                    <TextBlock Text="Computer Details" FontSize="15" FontWeight="Bold"
+                               Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <Grid Margin="0,0,0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="250"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Man:"        Grid.Column="0" Grid.Row="0" Foreground="#FFAAAAAA" FontSize="13" Margin="0,0,6,2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Name="txtManufacturer" Grid.Column="1" Grid.Row="0" Foreground="White" FontSize="13" Margin="0,0,0,2" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        <TextBlock Text="Model:"      Grid.Column="0" Grid.Row="1" Foreground="#FFAAAAAA" FontSize="13" Margin="0,0,6,2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Name="txtModel"    Grid.Column="1" Grid.Row="1" Foreground="White" FontSize="13" Margin="0,0,0,2" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        <TextBlock Text="Serial:"     Grid.Column="0" Grid.Row="2" Foreground="#FFAAAAAA" FontSize="13" Margin="0,0,6,2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Name="txtSerial"   Grid.Column="1" Grid.Row="2" Foreground="White" FontSize="13" Margin="0,0,0,2" VerticalAlignment="Center"/>
+                        <TextBlock Text="BIOS:"       Grid.Column="0" Grid.Row="3" Foreground="#FFAAAAAA" FontSize="13" Margin="0,0,6,2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Name="txtBios"     Grid.Column="1" Grid.Row="3" Foreground="White" FontSize="13" Margin="0,0,0,2" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        <TextBlock Text="CPU:"        Grid.Column="0" Grid.Row="4" Foreground="#FFAAAAAA" FontSize="13" Margin="0,0,6,2" HorizontalAlignment="Right" VerticalAlignment="Center" Name="lblCpuLabel"/>
+                        <TextBlock Name="txtCpu"      Grid.Column="1" Grid.Row="4" Foreground="White" FontSize="13" Margin="0,0,0,2" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <!-- Checkboxes Section -->
+            <StackPanel Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,0,10,0">
                 <CheckBox Name="chkOffice" Content="Install Office Applications" Margin="0,0,0,14" Foreground="White" />
                 <CheckBox Name="chkUmbrella" Content="Install Cisco Umbrella" Margin="0,0,0,14" Foreground="White" />
                 <CheckBox Name="chkDellCmd" Content="Install Dell Command Update" Margin="0,0,0,14" Foreground="White" />
             </StackPanel>
-            <TextBlock Name="lblTPM" Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4,0,0,0" FontSize="14" FontWeight="Bold"/>
-            <CheckBox Name="chkClearTPM" Grid.Row="2" Content="Clear TPM" Margin="4,0,0,0" Foreground="White" VerticalAlignment="Bottom"/>
+            <TextBlock Name="txtWinget" Grid.Row="2" FontSize="14" Foreground="#FFC0C0C0" Margin="4,7,0,0" HorizontalAlignment="Left"/>
+            <TextBlock Name="lblTPM" Grid.Row="3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4,0,0,0" FontSize="14" FontWeight="Bold"/>
+            <CheckBox Name="chkClearTPM" Grid.Row="4" Content="Clear TPM" Margin="4,0,0,0" Foreground="White" VerticalAlignment="Bottom"/>
         </Grid>
         <!-- Right Panel: Autopilot Section -->
-        <Border Grid.Column="1" Grid.Row="0" Background="#FF23272E" CornerRadius="8" Padding="16" Margin="10,0,0,0">
+        <Border Grid.Column="1" Grid.Row="0" Background="#FF23272E" CornerRadius="8" Padding="16" Margin="10,0,0,0" Width="390">
             <StackPanel>
                 <TextBlock Text="Autopilot" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" Foreground="White"/>
                 <CheckBox Name="chkEnroll" Content="Enroll in Autopilot" Margin="0,0,0,16" Foreground="White"/>
@@ -103,6 +140,61 @@ $lblTime        = Find-Name 'lblTime'
 $lblTimeZone    = Find-Name 'lblTimeZone'
 $btnCancel      = Find-Name 'btnCancel'
 $btnContinue    = Find-Name 'btnContinue'
+$txtManufacturer = Find-Name 'txtManufacturer'
+$txtModel        = Find-Name 'txtModel'
+$txtSerial       = Find-Name 'txtSerial'
+$txtBios         = Find-Name 'txtBios'
+$lblCpuLabel     = Find-Name 'lblCpuLabel'
+$txtCpu          = Find-Name 'txtCpu'
+$txtWinget       = Find-Name 'txtWinget'
+
+# Get Computer Details
+try {
+    $compSys = Get-WmiObject -Class Win32_ComputerSystem
+    $bios    = Get-WmiObject -Class Win32_BIOS
+    $proc    = Get-WmiObject -Class Win32_Processor | Select-Object -First 1
+
+    $txtManufacturer.Text  = $compSys.Manufacturer
+    $txtModel.Text         = $compSys.Model
+    $txtSerial.Text        = $bios.SerialNumber
+    $txtBios.Text          = $bios.SMBIOSBIOSVersion
+
+    # Only show CPU as 'x64' or 'ARM'
+    if ($proc.Architecture -eq 9) {
+        $txtCpu.Text = "x64"
+        $lblCpuLabel.Visibility = "Visible"
+        $txtCpu.Visibility = "Visible"
+    } elseif ($proc.Architecture -eq 12) {
+        $txtCpu.Text = "ARM"
+        $lblCpuLabel.Visibility = "Visible"
+        $txtCpu.Visibility = "Visible"
+    } else {
+        $lblCpuLabel.Visibility = "Collapsed"
+        $txtCpu.Visibility = "Collapsed"
+    }
+} catch {
+    $txtManufacturer.Text = "N/A"
+    $txtModel.Text        = "N/A"
+    $txtSerial.Text       = "N/A"
+    $txtBios.Text         = "N/A"
+    $lblCpuLabel.Visibility = "Collapsed"
+    $txtCpu.Visibility = "Collapsed"
+}
+
+# Winget version check
+try {
+    $wingetVersion = & winget --version 2>$null
+    if ($wingetVersion) {
+        $txtWinget.Text = "Winget installed ($wingetVersion)"
+        $txtWinget.Foreground = [System.Windows.Media.Brushes]::LimeGreen
+    } else {
+        $txtWinget.Text = "Winget not installed"
+        $txtWinget.Foreground = [System.Windows.Media.Brushes]::Red
+    }
+} catch {
+    $txtWinget.Text = "Winget not installed"
+    $txtWinget.Foreground = [System.Windows.Media.Brushes]::Red
+}
 
 # Set Time Zone display
 $timeZone = [System.TimeZoneInfo]::Local
