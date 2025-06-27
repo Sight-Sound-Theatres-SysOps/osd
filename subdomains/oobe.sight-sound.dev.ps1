@@ -1,3 +1,5 @@
+Write-Host -ForegroundColor Green "[+] Loading OOBE configuration menu..."
+
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 
@@ -72,7 +74,7 @@ $xaml = @"
             <CheckBox Name="chkClearTPM" Grid.Row="4" Content="Clear TPM" Margin="4,0,0,0" Foreground="White" VerticalAlignment="Bottom"/>
         </Grid>
         <!-- Right Panel: Autopilot Section -->
-        <Border Grid.Column="1" Grid.Row="0" Background="#FF23272E" CornerRadius="8" Padding="16" Margin="10,0,0,0" Width="390">
+        <Border Grid.Column="1" Grid.Row="0" Background="#FF23272E" CornerRadius="8" Padding="16" Margin="10,0,0,0" Width="480" MinHeight="360">
             <StackPanel>
                 <TextBlock Text="Autopilot" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" Foreground="White"/>
                 <CheckBox Name="chkEnroll" Content="Enroll in Autopilot" Margin="0,0,0,16" Foreground="White"/>
