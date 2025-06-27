@@ -99,7 +99,7 @@ function step-oobemenu {
                 <ComboBox Name="cmbGroupTag" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
                     <ComboBoxItem Content="Entreprise" />
                     <ComboBoxItem Content="Development" />
-                    <ComboBoxItem Content="MTR-001" />
+                    <ComboBoxItem Content="MTR-" />
                 </ComboBox>
                 <TextBlock Text="Group:" Foreground="White"/>
                 <ComboBox Name="cmbGroup" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
