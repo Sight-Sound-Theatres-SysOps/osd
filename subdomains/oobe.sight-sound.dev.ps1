@@ -1,5 +1,3 @@
-Write-Host -ForegroundColor Green "[+] Loading OOBE Configuration nenu"
-
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 
@@ -159,6 +157,15 @@ try {
     $txtSerial.Text        = $bios.SerialNumber
     $txtBios.Text          = $bios.SMBIOSBIOSVersion
 
+    # Disable Dell Command Update if not Dell
+    if ($txtManufacturer.Text -ne "Dell Inc.") {
+        $chkDellCmd.IsEnabled = $false
+        $chkDellCmd.ToolTip = "This option is only available on Dell systems."
+    } else {
+        $chkDellCmd.IsEnabled = $true
+        $chkDellCmd.ToolTip = $null
+    }
+
     # Only show CPU as 'x64' or 'ARM'
     if ($proc.Architecture -eq 9) {
         $txtCpu.Text = "x64"
@@ -179,6 +186,8 @@ try {
     $txtBios.Text         = "N/A"
     $lblCpuLabel.Visibility = "Collapsed"
     $txtCpu.Visibility = "Collapsed"
+    $chkDellCmd.IsEnabled = $false
+    $chkDellCmd.ToolTip = "This option is only available on Dell systems."
 }
 
 # Winget version check
