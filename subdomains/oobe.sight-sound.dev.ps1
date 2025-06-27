@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.1'
+$ScriptVersion = '25.6.27.2'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -98,7 +98,7 @@ if ($WindowsPhase -eq 'OOBE') {
     step-SetPowerShellProfile
     step-InstallPackageManagement
     step-TrustPSGallery
-    step-InstallPowerSHellModule -Name Pester
+    #step-InstallPowerSHellModule -Name Pester
     step-InstallPowerSHellModule -Name PSReadLine    
     step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
     step-InstallWinget
