@@ -163,9 +163,11 @@ try {
     if ($txtManufacturer.Text -ne "Dell Inc.") {
         $chkDellCmd.IsEnabled = $false
         $chkDellCmd.ToolTip = "This option is only available on Dell systems."
+        $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
     } else {
         $chkDellCmd.IsEnabled = $true
         $chkDellCmd.ToolTip = $null
+        $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::White
     }
 
     # Only show CPU as 'x64' or 'ARM'
