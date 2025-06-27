@@ -1,3 +1,22 @@
+[CmdletBinding()]
+param()
+$ScriptName = 'oobe_menu.ps1'
+$ScriptVersion = '25.6.27.1'
+
+#region Initialize
+if ($env:SystemDrive -eq 'X:') {
+    $WindowsPhase = 'WinPE'
+}
+else {
+    $ImageState = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup\State' -ErrorAction Ignore).ImageState
+    if ($env:UserName -eq 'defaultuser0') {$WindowsPhase = 'OOBE'}
+    elseif ($ImageState -eq 'IMAGE_STATE_SPECIALIZE_RESEAL_TO_OOBE') {$WindowsPhase = 'Specialize'}
+    elseif ($ImageState -eq 'IMAGE_STATE_SPECIALIZE_RESEAL_TO_AUDIT') {$WindowsPhase = 'AuditMode'}
+    else {$WindowsPhase = 'Windows'}
+}
+
+Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
+
 function step-oobemenu {
 
     Write-Host -ForegroundColor Green "[+] Loading OOBE configuration menu..."
