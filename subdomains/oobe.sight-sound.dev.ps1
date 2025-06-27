@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.2'
+$ScriptVersion = '25.6.27.4'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -50,6 +50,7 @@ else {
 
 Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobeFunctions.ps1)
+Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobe_menu_functions.ps1)
 Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobe_menu.ps1)
 #endregion
 
@@ -104,6 +105,16 @@ if ($WindowsPhase -eq 'OOBE') {
     step-InstallWinget
     step-desktopWallpaper
     step-oobemenu
+    # Run actions based on selections
+    if ($result) {
+    if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps }
+    if ($result.InstallUmbrella) { step-oobeMenu_InstallUmbrella }
+    if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd }
+    if ($result.ClearTPM)        { step-oobeMenu_ClearTPM }
+    if ($result.EnrollAutopilot) {
+        step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
+        }
+    }
     #step-InstallM365Apps    
     #step-oobeSetDateTime
     #step-oobeRegisterAutopilot 
