@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.27.1'
+$ScriptVersion = '25.6.27.2'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -19,54 +19,20 @@ Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase
 
 
 function step-oobeMenu_InstallM365Apps {
-    [CmdletBinding()]
-    param ()
-
+    $marker = 'C:\OSDCloud\Scripts\m365AppsInstalled.txt'
     $scriptDirectory = "C:\OSDCloud\Scripts"
-    $scriptPath = Join-Path $scriptDirectory "InstallM365Apps.ps1"
+    $scriptPath = "$scriptDirectory\InstallM365Apps.ps1"
     $officeConfigXml = "https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/supportFiles/MicrosoftOffice/configuration.xml"
 
-    # Helper: Test for any M365 Office app by product name
-    function Test-M365Installed {
-        $officeNames = @(
-            "Microsoft 365 Apps for enterprise",
-            "Microsoft 365 Apps for business",
-            "Microsoft Office 365 ProPlus",
-            "Microsoft Office Professional Plus 2016",
-            "Microsoft Office Professional Plus 2019",
-            "Microsoft Office LTSC",
-            "Microsoft Office 365",
-            "Office16",
-            "Office19"
-        )
-
-        $found = $false
-        $UninstallKeys = @(
-            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
-            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
-        )
-        foreach ($keyPath in $UninstallKeys) {
-            $apps = Get-ItemProperty $keyPath -ErrorAction SilentlyContinue
-            foreach ($app in $apps) {
-                foreach ($name in $officeNames) {
-                    if ($app.DisplayName -like "*$name*") {
-                        return $true
-                    }
-                }
-            }
-        }
-        return $false
+    if (Test-Path $marker) {
+        Write-Host -ForegroundColor Green "[+] Microsoft 365 Apps already installed (marker file present)."
+        return $true
     }
 
     # Ensure script directory exists
     if (-not (Test-Path $scriptDirectory)) {
         Write-Host -ForegroundColor Yellow "[-] Creating $scriptDirectory..."
         New-Item -Path $scriptDirectory -ItemType Directory | Out-Null
-    }
-
-    if (Test-M365Installed) {
-        Write-Host -ForegroundColor Green "[+] Microsoft 365 Apps already installed."
-        return $true
     }
 
     # Download the installer script if not present
@@ -78,10 +44,48 @@ function step-oobeMenu_InstallM365Apps {
     Write-Host -ForegroundColor Yellow "[-] Installing M365 Applications (see $scriptPath)..."
     try {
         & $scriptPath -XMLURL $officeConfigXml -ErrorAction Stop
-        Write-Host -ForegroundColor Green "[+] M365 installation script executed."
+        if ($?) {
+            Write-Host -ForegroundColor Green "[+] M365 installation script executed."
+            # Marker for future runs
+            New-Item -ItemType File -Path $marker -Force | Out-Null
+            return $true
+        } else {
+            Write-Host -ForegroundColor Red "[!] Office installer returned an error."
+            return $false
+        }
     } catch {
         Write-Host -ForegroundColor Red "[!] Error running M365 install: $_"
         return $false
     }
-    return $true
+}
+
+
+function step-oobeMenu_InstallUmbrella {
+    [CmdletBinding()]
+    param ()  
+
+    Write-Host -ForegroundColor Yellow "[-] Installing Cisco Umbrella"
+}
+
+
+function step-oobeMenu_InstallDellCmd {
+    [CmdletBinding()]
+    param ()  
+    
+    Write-Host -ForegroundColor Yellow "[-] Installing Dell Commandupdate"
+}
+
+
+function step-oobeMenu_ClearTPM {
+    [CmdletBinding()]
+    param ()   
+
+    Write-Host -ForegroundColor Yellow "[-] Clearing TPM"
+}
+
+function step-oobeMenu_RegisterAutopilot {
+    [CmdletBinding()]
+    param ()   
+
+    Write-Host -ForegroundColor Yellow "[-] Registering with Windows Autopilot"
 }

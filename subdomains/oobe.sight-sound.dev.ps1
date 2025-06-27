@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.5'
+$ScriptVersion = '25.6.27.7'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -107,12 +107,16 @@ if ($WindowsPhase -eq 'OOBE') {
     $result = step-oobemenu
     # Run actions based on selections
     if ($result) {
-    if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps }
-    if ($result.InstallUmbrella) { step-oobeMenu_InstallUmbrella }
-    if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd }
-    if ($result.ClearTPM)        { step-oobeMenu_ClearTPM }
+    if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps | Out-Null}
+    if ($result.InstallUmbrella) { step-oobeMenu_InstallUmbrella | Out-Null}
+    if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd | Out-Null}
+    if ($result.ClearTPM)        { step-oobeMenu_ClearTPM | Out-Null}
     if ($result.EnrollAutopilot) {
-        step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
+        #step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
+        Write-Host GroupTag: $result.GroupTag
+        Write-Host Group: $result.Group
+        Write-Host ComputerName: $result.ComputerName
+        Write-Host EnrollmentPassword: $result.EnrollmentPassword
         }
     }
     #step-InstallM365Apps    

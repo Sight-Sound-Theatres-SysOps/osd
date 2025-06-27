@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.27.1'
+$ScriptVersion = '25.6.27.2'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -97,15 +97,18 @@ function step-oobemenu {
                 <CheckBox Name="chkEnroll" Content="Enroll in Autopilot" Margin="0,0,0,16" Foreground="White"/>
                 <TextBlock Text="Group Tag:" Foreground="White"/>
                 <ComboBox Name="cmbGroupTag" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
-                    <ComboBoxItem Content="Tag1" />
-                    <ComboBoxItem Content="Tag2" />
-                    <ComboBoxItem Content="Tag3" />
+                    <ComboBoxItem Content="Entreprise" />
+                    <ComboBoxItem Content="Development" />
+                    <ComboBoxItem Content="MTR-001" />
                 </ComboBox>
                 <TextBlock Text="Group:" Foreground="White"/>
                 <ComboBox Name="cmbGroup" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
-                    <ComboBoxItem Content="Group A" />
-                    <ComboBoxItem Content="Group B" />
-                    <ComboBoxItem Content="Group C" />
+                    <ComboBoxItem Content="Autopilot_Devices-GeneralUsers" />
+                    <ComboBoxItem Content="Autopilot_Devices-Box_CC" />
+                    <ComboBoxItem Content="AutoPilot_Devices-Retail" />
+                    <ComboBoxItem Content="Autopilot_Devices-CenterStageKiosk" />
+                    <ComboBoxItem Content="Autopilot_Devices-SharedDevice" />
+                    <ComboBoxItem Content="AutoPilot_Devices-TeamsRooms" />
                 </ComboBox>
                 <TextBlock Text="Computer Name:" Foreground="White"/>
                 <TextBox Name="txtComputerName" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30" />
