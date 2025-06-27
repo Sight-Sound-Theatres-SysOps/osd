@@ -744,7 +744,7 @@ function Step-oobeSetDateTime {
         # Step 3: Upgrade all packages with winget
         Write-Host -ForegroundColor Yellow "[-] Upgrading winget packages"
         try {
-            winget upgrade --all --accept-source-agreements --accept-package-agreements 
+            #winget upgrade --all --accept-source-agreements --accept-package-agreements 
             if ($LASTEXITCODE -eq 0) {
                 Write-Host -ForegroundColor Green "[+] winget packages upgraded"
             }

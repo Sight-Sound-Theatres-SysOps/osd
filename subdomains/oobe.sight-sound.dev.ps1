@@ -98,10 +98,10 @@ if ($WindowsPhase -eq 'OOBE') {
     step-SetPowerShellProfile
     step-InstallPackageManagement
     step-TrustPSGallery
-    #step-InstallPowerSHellModule -Name Pester
+    step-InstallPowerSHellModule -Name Pester
     step-InstallPowerSHellModule -Name PSReadLine    
-    #step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
-    #step-InstallWinget
+    step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
+    step-InstallWinget
     step-desktopWallpaper
     step-oobemenu
     #step-InstallM365Apps    
