@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.4'
+$ScriptVersion = '25.6.27.5'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -104,7 +104,7 @@ if ($WindowsPhase -eq 'OOBE') {
     step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
     step-InstallWinget
     step-desktopWallpaper
-    step-oobemenu
+    $result = step-oobemenu
     # Run actions based on selections
     if ($result) {
     if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps }
