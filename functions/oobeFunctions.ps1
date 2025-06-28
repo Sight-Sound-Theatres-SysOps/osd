@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobeFunctions.sight-sound.dev'
-$ScriptVersion = '25.6.28.1'
+$ScriptVersion = '25.6.28.2'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -1049,8 +1049,10 @@ function step-PendingReboot {
 
         if ($choice -eq [System.Windows.MessageBoxResult]::Yes) {
             Restart-Computer -Force
+            return $true
+        } else {
+            exit  # Stop script 
         }
-        return $true
     }
     return $false
 }
