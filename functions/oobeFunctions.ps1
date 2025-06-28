@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobeFunctions.sight-sound.dev'
-$ScriptVersion = '25.5.26.1'
+$ScriptVersion = '25.6.28.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -1008,4 +1008,49 @@ function step-InstallPowerShellModule {
         Import-Module -Name $Name -Force
         Write-Host -ForegroundColor Green "[+] $Name $($InstalledModule.Version)"
     }
+}
+
+function step-PendingReboot {
+    # Checks common locations for pending reboot
+    function Test-PendingReboot {
+        Write-Host -ForegroundColor Yellow "[-] Checking for pending reboot..."
+        $rebootPending = $false
+        # Check for CBS Reboot Pending
+        $cbs = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+        if (Test-Path $cbs) { $rebootPending = $true }
+
+        # Check for Windows Update Reboot Required
+        $wu = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
+        if (Test-Path $wu) { $rebootPending = $true }
+
+        # Check for Pending File Rename Operations
+        $pfro = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name 'PendingFileRenameOperations' -ErrorAction SilentlyContinue
+        if ($pfro) { $rebootPending = $true }
+
+        return $rebootPending
+    }
+
+    if (Test-PendingReboot) {
+        Add-Type -AssemblyName PresentationFramework
+        [System.Windows.MessageBox]::Show(
+            "There is a pending reboot. Please reboot the system and try again.",
+            "Pending Reboot Detected",
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Warning
+        ) | Out-Null
+
+        # Show a Restart prompt
+        $choice = [System.Windows.MessageBox]::Show(
+            "Would you like to reboot now?",
+            "Reboot Required",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Question
+        )
+
+        if ($choice -eq [System.Windows.MessageBoxResult]::Yes) {
+            Restart-Computer -Force
+        }
+        return $true
+    }
+    return $false
 }
