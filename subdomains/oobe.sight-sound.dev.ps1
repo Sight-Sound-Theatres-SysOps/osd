@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.9'
+$ScriptVersion = '25.6.27.10'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -106,28 +106,43 @@ if ($WindowsPhase -eq 'OOBE') {
     step-desktopWallpaper
         $valid = $false
         while (-not $valid) {
-        $result = step-oobemenu
+            $result = step-oobemenu
 
-        if (-not $result) { break } # User cancelled out of the menu
+            if (-not $result) { break } # User cancelled out of the menu
 
-        $apPassed = $true
-        if ($result.EnrollAutopilot) {
-            $plainPass = $result.EnrollmentPassword
-            $apTest = Test-AutopilotPassword -Password $plainPass
-            if (-not $apTest) {
-                [System.Windows.MessageBox]::Show(
-                    "Autopilot password is incorrect. Please try again.",
-                    "Autopilot Error",
-                    [System.Windows.MessageBoxButton]::OK,
-                    [System.Windows.MessageBoxImage]::Error
-                ) | Out-Null
-                continue  # Loop again to retry the menu!
+            # --- Force Computer Name Uppercase ---
+            if ($result.ComputerName) {
+                $result.ComputerName = $result.ComputerName.ToUpper()
             }
-            $apPassed = $apTest
-        }
-        $valid = $true
-        }
 
+            # --- Validate Computer Name Length ---
+            if ($result.ComputerName -and $result.ComputerName.Length -gt 15) {
+                [System.Windows.MessageBox]::Show(
+                    "Computer Name must be 15 characters or less.",
+                    "Input Error",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Warning
+                ) | Out-Null
+                continue # Go back to the menu for correction
+            }
+
+            $apPassed = $true
+            if ($result.EnrollAutopilot) {
+                $plainPass = $result.EnrollmentPassword
+                $apTest = Test-AutopilotPassword -Password $plainPass
+                if (-not $apTest) {
+                    [System.Windows.MessageBox]::Show(
+                        "Autopilot password is incorrect. Please try again.",
+                        "Autopilot Error",
+                        [System.Windows.MessageBoxButton]::OK,
+                        [System.Windows.MessageBoxImage]::Error
+                    ) | Out-Null
+                    continue  # Loop again to retry the menu!
+                }
+                $apPassed = $apTest
+            }
+            $valid = $true
+        }
         # Now outside the loop, run installs if the user didn't cancel
         if ($result) {
             if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps | Out-Null }
@@ -142,6 +157,7 @@ if ($WindowsPhase -eq 'OOBE') {
                 Write-Host EnrollmentPassword: $result.EnrollmentPassword
             }
         }
+
     #step-InstallM365Apps    
     #step-oobeSetDateTime
     #step-oobeRegisterAutopilot 
