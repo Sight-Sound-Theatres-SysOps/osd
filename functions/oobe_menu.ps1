@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.27.4'
+$ScriptVersion = '25.6.28.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -44,14 +44,14 @@ function step-oobemenu {
             <RowDefinition Height="*" />
             <RowDefinition Height="110" />
         </Grid.RowDefinitions>
-        <!-- Left Panel: Computer Details, Checkboxes, Winget, TPM, and Clear TPM -->
+        <!-- Left Panel: Computer Details, Checkboxes, Winget, and TPM -->
         <Grid Grid.Column="0" Grid.RowSpan="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" /> <!-- Computer details -->
                 <RowDefinition Height="*" />    <!-- Checkboxes -->
                 <RowDefinition Height="Auto" /> <!-- Winget -->
-                <RowDefinition Height="Auto" /> <!-- TPM label -->
-                <RowDefinition Height="Auto" /> <!-- Clear TPM checkbox -->
+                <RowDefinition Height="Auto" /> <!-- Filler (push TPM label down) -->
+                <RowDefinition Height="Auto" /> <!-- TPM label (lower left) -->
             </Grid.RowDefinitions>
             <!-- Computer Details Box -->
             <Border Grid.Row="0" Margin="0,0,10,20" Padding="16" CornerRadius="10"
@@ -87,8 +87,10 @@ function step-oobemenu {
                 <CheckBox Name="chkDellCmd" Content="Install Dell Command Update" Margin="0,0,0,14" Foreground="White" />
             </StackPanel>
             <TextBlock Name="txtWinget" Grid.Row="2" FontSize="14" Foreground="#FFC0C0C0" Margin="4,7,0,0" HorizontalAlignment="Left"/>
-            <TextBlock Name="lblTPM" Grid.Row="3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4,0,0,0" FontSize="14" FontWeight="Bold"/>
-            <CheckBox Name="chkClearTPM" Grid.Row="4" Content="Clear TPM" Margin="4,0,0,0" Foreground="White" VerticalAlignment="Bottom"/>
+            <!-- TPM status in lower left, clickable -->
+            <TextBlock Name="lblTPM" Grid.Row="4" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                       Margin="4,0,0,0" FontSize="14" FontWeight="Bold" Cursor="Hand"
+                       TextDecorations="Underline" ToolTip="Click to open TPM Management"/>
         </Grid>
         <!-- Right Panel: Autopilot Section -->
         <Border Grid.Column="1" Grid.Row="0" Background="#FF23272E" CornerRadius="8" Padding="16" Margin="10,0,0,0" Width="480" MinHeight="360">
@@ -150,7 +152,6 @@ function step-oobemenu {
     $chkUmbrella    = Find-Name 'chkUmbrella'
     $chkDellCmd     = Find-Name 'chkDellCmd'
     $lblTPM         = Find-Name 'lblTPM'
-    $chkClearTPM    = Find-Name 'chkClearTPM'
     $chkEnroll      = Find-Name 'chkEnroll'
     $cmbGroupTag    = Find-Name 'cmbGroupTag'
     $cmbGroup       = Find-Name 'cmbGroup'
@@ -275,6 +276,8 @@ function step-oobemenu {
             $lblTPM.Inlines.Add($italic)
             $lblTPM.Foreground = [System.Windows.Media.Brushes]::Red
         }
+        # Make clickable to open tpm.msc
+        $lblTPM.Add_MouseLeftButtonUp({ Start-Process tpm.msc }) | Out-Null
     }
 
     $global:oobeMenuResult = $null
@@ -291,7 +294,7 @@ function step-oobemenu {
                 InstallOffice = $chkOffice.IsChecked
                 InstallUmbrella = $chkUmbrella.IsChecked
                 InstallDellCmd = $chkDellCmd.IsChecked
-                ClearTPM = $chkClearTPM.IsChecked
+                # No ClearTPM anymore
                 EnrollAutopilot = $chkEnroll.IsChecked
                 GroupTag = $cmbGroupTag.Text
                 Group = $cmbGroup.Text
