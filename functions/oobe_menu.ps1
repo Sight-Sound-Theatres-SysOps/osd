@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.28.16'
+$ScriptVersion = '25.6.28.17'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -169,6 +169,9 @@ function step-oobemenu {
     $txtCpu          = Find-Name 'txtCpu'
     $txtWinget       = Find-Name 'txtWinget'
     $txtManModel     = Find-Name 'txtManModel'
+
+    #Hide Dell Command Update option
+    if ($chkDellCmd) { $chkDellCmd.Visibility = "Collapsed" }
 
     # Winget version check
     try {
