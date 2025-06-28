@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.28.9'
+$ScriptVersion = '25.6.28.10'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -54,7 +54,7 @@ function step-oobemenu {
                 <RowDefinition Height="Auto" /> <!-- TPM label (lower left) -->
             </Grid.RowDefinitions>
             <!-- Computer Details Box -->
-            <Border Grid.Row="0" Margin="0,0,10,20" Padding="16" CornerRadius="10"
+            <Border Grid.Row="0" Margin="0,0,20,20" Padding="16" CornerRadius="10"
                     Background="#FF1E1E1E" HorizontalAlignment="Center" Width="320">
                 <StackPanel>
                     <TextBlock Text="Computer Details" FontSize="15" FontWeight="Bold"
