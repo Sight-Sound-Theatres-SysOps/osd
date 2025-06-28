@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.10'
+$ScriptVersion = '25.6.27.11'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -101,8 +101,8 @@ if ($WindowsPhase -eq 'OOBE') {
     step-TrustPSGallery
     #step-InstallPowerSHellModule -Name Pester
     step-InstallPowerSHellModule -Name PSReadLine    
-    step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
-    step-InstallWinget
+    #step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
+    #step-InstallWinget
     step-desktopWallpaper
         $valid = $false
         while (-not $valid) {
@@ -150,22 +150,18 @@ if ($WindowsPhase -eq 'OOBE') {
             if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd | Out-Null }
             if ($result.ClearTPM)        { step-oobeMenu_ClearTPM | Out-Null }
             if ($result.EnrollAutopilot) {
-                # step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
+                step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
                 Write-Host GroupTag: $result.GroupTag
                 Write-Host Group: $result.Group
                 Write-Host ComputerName: $result.ComputerName
-                Write-Host EnrollmentPassword: $result.EnrollmentPassword
             }
         }
 
-    #step-InstallM365Apps    
-    #step-oobeSetDateTime
-    #step-oobeRegisterAutopilot 
-    #step-oobeRemoveAppxPackageAllUsers
-    #step-oobeSetUserRegSettings
-    #step-oobeSetDeviceRegSettings   
-    #step-oobeCreateLocalUser
-    #step-oobeRestartComputer
+    step-oobeRemoveAppxPackageAllUsers
+    step-oobeSetUserRegSettings
+    step-oobeSetDeviceRegSettings   
+    step-oobeCreateLocalUser
+    step-oobeRestartComputer
 
     $null = Stop-Transcript -ErrorAction Ignore
 }

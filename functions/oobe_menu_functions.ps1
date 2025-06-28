@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.27.3'
+$ScriptVersion = '25.6.27.4'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -85,10 +85,48 @@ function step-oobeMenu_ClearTPM {
 
 function step-oobeMenu_RegisterAutopilot {
     [CmdletBinding()]
-    param ()   
+    param (
+        [string]$GroupTag,
+        [string]$Group,
+        [string]$ComputerName,
+        [string]$EnrollmentPassword
+    )
 
     Write-Host -ForegroundColor Yellow "[-] Registering with Windows Autopilot"
+
+    # Decrypt credentials
+    $jsonContent = Test-AutopilotPassword -Password $EnrollmentPassword
+    if (-not $jsonContent) {
+        Write-Host -ForegroundColor Red "[!] Failed to decrypt Autopilot credentials. Skipping registration."
+        return $false
+    }
+
+    $TenantID  = $jsonContent.TenantID
+    $appID     = $jsonContent.appid
+    $appsecret = $jsonContent.appsecret
+
+    # Install the get-windowsautopilotinfocommunity script
+    Install-Script Get-WindowsAutopilotInfoCommunity -Force
+    Install-Script Get-AutopilotDiagnosticsCommunity -Force 
+
+    # Run the script
+    try {
+        & $scriptPath -Assign `
+            -GroupTag $GroupTag `
+            -AssignedComputerName $ComputerName `
+            -AddToGroup $Group `
+            -online `
+            -TenantID $TenantID `
+            -appID $appID `
+            -appsecret $appsecret
+        Write-Host -ForegroundColor Green "[+] Autopilot registration completed."
+        return $true
+    } catch {
+        Write-Host -ForegroundColor Red "[!] Error during Autopilot registration: $_"
+        return $false
+    }
 }
+
 
 function Test-AutopilotPassword {
     param (
