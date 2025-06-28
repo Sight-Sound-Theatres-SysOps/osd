@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.28.4'
+$ScriptVersion = '25.6.28.5'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -17,7 +17,9 @@ else {
 
 Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 
-
+##=====================##
+##      FUNCTIONS      ## 
+##=====================##
 function step-oobeMenu_InstallM365Apps {
     $marker = 'C:\OSDCloud\Scripts\m365AppsInstalled.txt'
     $scriptDirectory = "C:\OSDCloud\Scripts"
@@ -101,16 +103,16 @@ function step-oobeMenu_RegisterAutopilot {
     $appID     = $jsonContent.appid
     $appsecret = $jsonContent.appsecret
 
-    # Install the get-windowsautopilotinfocommunity script
-    Install-Script Get-WindowsAutopilotInfoCommunity -Force
+    # Install the get-windowsautopilotinfo script
+    Install-Script Get-WindowsAutopilotInfo -Force
     Install-Script Get-AutopilotDiagnosticsCommunity -Force 
 
     # Run the script
     try {
-        Write-Host -ForegroundColor Green "[+] Running Get-WindowsAutopilotInfoCommunity script..."
+        Write-Host -ForegroundColor Green "[+] Running Get-WindowsAutopilotInfo script..."
         Write-Host -ForegroundColor Yellow "[!] Tag: $GroupTag - Computer Name: $ComputerName - Group: $Group"
 
-        Get-WindowsAutopilotInfoCommunity.ps1 -Assign `
+        Get-WindowsAutopilotInfo.ps1 -Assign `
             -GroupTag $GroupTag `
             -AssignedComputerName $ComputerName `
             -AddToGroup $Group `
