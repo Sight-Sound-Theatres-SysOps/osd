@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.27.4'
+$ScriptVersion = '25.6.27.5'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -111,7 +111,7 @@ function step-oobeMenu_RegisterAutopilot {
 
     # Run the script
     try {
-        & $scriptPath -Assign `
+        Get-WindowsAutopilotInfoCommunity.ps1 -Assign `
             -GroupTag $GroupTag `
             -AssignedComputerName $ComputerName `
             -AddToGroup $Group `
