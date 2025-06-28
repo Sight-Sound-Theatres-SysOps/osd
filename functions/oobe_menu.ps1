@@ -55,7 +55,7 @@ function step-oobemenu {
             </Grid.RowDefinitions>
             <!-- Computer Details Box -->
             <Border Grid.Row="0" Margin="0,0,10,20" Padding="16" CornerRadius="10"
-                    Background="#FF1E1E1E" HorizontalAlignment="Center" Width="330">
+                    Background="#FF1E1E1E" HorizontalAlignment="Center" Width="380">
                 <StackPanel>
                     <TextBlock Text="Computer Details" FontSize="15" FontWeight="Bold"
                                Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,2"/>
