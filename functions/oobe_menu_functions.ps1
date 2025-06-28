@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.27.5'
+$ScriptVersion = '25.6.27.6'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -64,7 +64,7 @@ function step-oobeMenu_InstallUmbrella {
     [CmdletBinding()]
     param ()  
 
-    Write-Host -ForegroundColor Yellow "[-] Installing Cisco Umbrella"
+    invoke-expression -command (Invoke-RestMethod -Uri "https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/refs/heads/main/cloudscripts/Cisco/install-umbrella.ps1")
 }
 
 
@@ -111,6 +111,9 @@ function step-oobeMenu_RegisterAutopilot {
 
     # Run the script
     try {
+        Write-Host -ForegroundColor Green "[+] Running Get-WindowsAutopilotInfoCommunity script..."
+        Write-Host -ForegroundColor Yellow "[!] Tag: $GroupTag - Computer Name: $ComputerName - Group: $Group"
+
         Get-WindowsAutopilotInfoCommunity.ps1 -Assign `
             -GroupTag $GroupTag `
             -AssignedComputerName $ComputerName `
