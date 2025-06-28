@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.27.2'
+$ScriptVersion = '25.6.27.3'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -55,7 +55,7 @@ function step-oobemenu {
             </Grid.RowDefinitions>
             <!-- Computer Details Box -->
             <Border Grid.Row="0" Margin="0,0,10,20" Padding="16" CornerRadius="10"
-                    Background="#FF292939" HorizontalAlignment="Center" Width="330">
+                    Background="#FF23272E" HorizontalAlignment="Center" Width="330">
                 <StackPanel>
                     <TextBlock Text="Computer Details" FontSize="15" FontWeight="Bold"
                                Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,2"/>
@@ -83,7 +83,7 @@ function step-oobemenu {
             <!-- Checkboxes Section -->
             <StackPanel Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,0,10,0">
                 <CheckBox Name="chkOffice" Content="Install Office Applications" Margin="0,0,0,14" Foreground="White" />
-                <CheckBox Name="chkUmbrella" Content="Install Cisco Umbrella" Margin="0,0,0,14" Foreground="White" />
+                <CheckBox Name="chkUmbrella" Content="Install Cisco Umbrella Client" Margin="0,0,0,14" Foreground="White" />
                 <CheckBox Name="chkDellCmd" Content="Install Dell Command Update" Margin="0,0,0,14" Foreground="White" />
             </StackPanel>
             <TextBlock Name="txtWinget" Grid.Row="2" FontSize="14" Foreground="#FFC0C0C0" Margin="4,7,0,0" HorizontalAlignment="Left"/>
