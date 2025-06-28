@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.8'
+$ScriptVersion = '25.6.27.9'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -120,7 +120,7 @@ if ($WindowsPhase -eq 'OOBE') {
                     "Autopilot Error",
                     [System.Windows.MessageBoxButton]::OK,
                     [System.Windows.MessageBoxImage]::Error
-                )
+                ) | Out-Null
                 continue  # Loop again to retry the menu!
             }
             $apPassed = $apTest
