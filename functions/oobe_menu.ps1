@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.28.17'
+$ScriptVersion = '25.6.28.18'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -172,6 +172,20 @@ function step-oobemenu {
 
     #Hide Dell Command Update option
     if ($chkDellCmd) { $chkDellCmd.Visibility = "Collapsed" }
+
+    # --- Disable/Enable Autopilot Fields based on checkbox ---
+    if ($chkEnroll) {
+        $handler = {
+            $enabled = $chkEnroll.IsChecked -eq $true
+            $cmbGroupTag.IsEnabled    = $enabled
+            $cmbGroup.IsEnabled       = $enabled
+            $txtComputerName.IsEnabled= $enabled
+            $pwdEnrollment.IsEnabled  = $enabled
+        }
+        $null = $chkEnroll.Add_Checked($handler)
+        $null = $chkEnroll.Add_Unchecked($handler)
+        & $handler
+    }
 
     # Winget version check
     try {
