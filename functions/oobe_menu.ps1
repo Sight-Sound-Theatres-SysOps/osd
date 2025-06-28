@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.28.15'
+$ScriptVersion = '25.6.28.16'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -170,6 +170,27 @@ function step-oobemenu {
     $txtWinget       = Find-Name 'txtWinget'
     $txtManModel     = Find-Name 'txtManModel'
 
+    # Winget version check
+    try {
+        $wingetVersion = & winget --version 2>$null
+        if ($wingetVersion) {
+            if ($txtWinget) {
+                $txtWinget.Text = "Winget installed ($wingetVersion)"
+                $txtWinget.Foreground = [System.Windows.Media.Brushes]::LimeGreen
+            }
+        } else {
+            if ($txtWinget) {
+                $txtWinget.Text = "Winget not installed"
+                $txtWinget.Foreground = [System.Windows.Media.Brushes]::Red
+            }
+        }
+    } catch {
+        if ($txtWinget) {
+            $txtWinget.Text = "Winget not installed"
+            $txtWinget.Foreground = [System.Windows.Media.Brushes]::Red
+        }
+    }
+
     # Get Computer Details
     try {
         $compSys = Get-WmiObject -Class Win32_ComputerSystem
@@ -227,27 +248,6 @@ function step-oobemenu {
             $chkDellCmd.IsEnabled = $false
             $chkDellCmd.ToolTip = "This option is only available on Dell systems."
             $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
-        }
-    }
-
-    # Winget version check
-    try {
-        $wingetVersion = & winget --version 2>$null
-        if ($wingetVersion) {
-            if ($txtWinget) {
-                $txtWinget.Text = "Winget installed ($wingetVersion)"
-                $txtWinget.Foreground = [System.Windows.Media.Brushes]::LimeGreen
-            }
-        } else {
-            if ($txtWinget) {
-                $txtWinget.Text = "Winget not installed"
-                $txtWinget.Foreground = [System.Windows.Media.Brushes]::Red
-            }
-        }
-    } catch {
-        if ($txtWinget) {
-            $txtWinget.Text = "Winget not installed"
-            $txtWinget.Foreground = [System.Windows.Media.Brushes]::Red
         }
     }
 
