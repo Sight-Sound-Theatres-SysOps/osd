@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.27.6'
+$ScriptVersion = '25.6.28.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -73,6 +73,7 @@ function step-oobeMenu_InstallDellCmd {
     param ()  
     
     Write-Host -ForegroundColor Yellow "[-] Installing Dell Commandupdate"
+    winget install --id Dell.CommandUpdate --accept-package-agreements --accept-source-agreements --silent
 }
 
 

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.28.14'
+$ScriptVersion = '25.6.28.15'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -183,9 +183,18 @@ function step-oobemenu {
         if ($txtManModel)     { $txtManModel.Text      = "$($compSys.Manufacturer) - $($compSys.Model)" }
 
         if ($chkDellCmd) {
-            if ($compSys.Manufacturer -ne "Dell Inc.") {
+            if (
+                ($compSys.Manufacturer -ne "Dell Inc.") -or
+                (-not $wingetVersion)
+            ) {
                 $chkDellCmd.IsEnabled = $false
-                $chkDellCmd.ToolTip = "This option is only available on Dell systems."
+                if ($compSys.Manufacturer -ne "Dell Inc.") {
+                    $chkDellCmd.ToolTip = "This option is only available on Dell systems."
+                } elseif (-not $wingetVersion) {
+                    $chkDellCmd.ToolTip = "Winget is not installed on this system."
+                } else {
+                    $chkDellCmd.ToolTip = "This option is unavailable."
+                }
                 $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
             } else {
                 $chkDellCmd.IsEnabled = $true
