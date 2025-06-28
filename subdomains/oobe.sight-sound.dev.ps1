@@ -31,7 +31,7 @@ powershell iex (irm oobe.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe.sight-sound.dev'
-$ScriptVersion = '25.6.27.11'
+$ScriptVersion = '25.6.27.12'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -104,11 +104,17 @@ if ($WindowsPhase -eq 'OOBE') {
     #step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
     #step-InstallWinget
     step-desktopWallpaper
+
+    # --- Load OOBE Menu ---
         $valid = $false
         while (-not $valid) {
             $result = step-oobemenu
 
-            if (-not $result) { break } # User cancelled out of the menu
+            if (-not $result) {
+                Write-Host -ForegroundColor Yellow "[!] User cancelled OOBE menu. Exiting script."
+                Stop-Transcript -ErrorAction Ignore
+                exit
+        }
 
             # --- Force Computer Name Uppercase ---
             if ($result.ComputerName) {
