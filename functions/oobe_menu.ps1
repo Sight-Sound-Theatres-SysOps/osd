@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.29.1'
+$ScriptVersion = '25.6.29.2'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -83,8 +83,6 @@ function step-oobemenu {
             <!-- Checkboxes Section -->
             <StackPanel Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,0,10,0">
                 <CheckBox Name="chkOffice" Content="Install Office Applications" Margin="0,0,0,14" Foreground="White" />
-                <CheckBox Name="chkUmbrella" Content="Install Cisco Umbrella Client" Margin="0,0,0,14" Foreground="White" />
-                <CheckBox Name="chkDellCmd" Content="Install Dell Command Update" Margin="0,0,0,14" Foreground="White" />
             </StackPanel>
             <TextBlock Name="txtWinget" Grid.Row="2" FontSize="14" Foreground="#FFC0C0C0" Margin="4,7,0,0" HorizontalAlignment="Left"/>
             <!-- TPM status in lower left, clickable -->
@@ -152,8 +150,6 @@ function step-oobemenu {
 
     # Controls
     $chkOffice          = Find-Name 'chkOffice'
-    $chkUmbrella        = Find-Name 'chkUmbrella'
-    $chkDellCmd         = Find-Name 'chkDellCmd'
     $lblTPM             = Find-Name 'lblTPM'
     $chkEnroll          = Find-Name 'chkEnroll'
     $chkCommunityScript = Find-Name 'chkCommunityScript'
@@ -173,10 +169,6 @@ function step-oobemenu {
     $txtCpu             = Find-Name 'txtCpu'
     $txtWinget          = Find-Name 'txtWinget'
     $txtManModel        = Find-Name 'txtManModel'
-
-    #Hide Dell Command Update and Cisco Umbrella options
-    if ($chkUmbrella) { $chkUmbrella.Visibility = "Collapsed" }
-    if ($chkDellCmd) { $chkDellCmd.Visibility = "Collapsed" }
 
     # --- Disable/Enable Autopilot Fields based on checkbox ---
     if ($chkEnroll) {
@@ -226,27 +218,6 @@ function step-oobemenu {
         if ($txtBios)         { $txtBios.Text          = $bios.SMBIOSBIOSVersion }
         if ($txtManModel)     { $txtManModel.Text      = "$($compSys.Manufacturer) - $($compSys.Model)" }
 
-        if ($chkDellCmd) {
-            if (
-                ($compSys.Manufacturer -ne "Dell Inc.") -or
-                (-not $wingetVersion)
-            ) {
-                $chkDellCmd.IsEnabled = $false
-                if ($compSys.Manufacturer -ne "Dell Inc.") {
-                    $chkDellCmd.ToolTip = "This option is only available on Dell systems."
-                } elseif (-not $wingetVersion) {
-                    $chkDellCmd.ToolTip = "Winget is not installed on this system."
-                } else {
-                    $chkDellCmd.ToolTip = "This option is unavailable."
-                }
-                $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
-            } else {
-                $chkDellCmd.IsEnabled = $true
-                $chkDellCmd.ToolTip = $null
-                $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::White
-            }
-        }
-
         if ($proc.Architecture -eq 9) {
             if ($txtCpu) { $txtCpu.Text = "x64" }
             if ($lblCpuLabel) { $lblCpuLabel.Visibility = "Visible" }
@@ -267,10 +238,6 @@ function step-oobemenu {
         if ($txtManModel)     { $txtManModel.Text     = "N/A" }
         if ($lblCpuLabel)     { $lblCpuLabel.Visibility = "Collapsed" }
         if ($txtCpu)          { $txtCpu.Visibility = "Collapsed" }
-        if ($chkDellCmd) {
-            $chkDellCmd.IsEnabled = $false
-            $chkDellCmd.ToolTip = "This option is only available on Dell systems."
-            $chkDellCmd.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
         }
     }
 
@@ -324,9 +291,6 @@ function step-oobemenu {
         $btnContinue.Add_Click({
             $global:oobeMenuResult = [PSCustomObject]@{
                 InstallOffice = $chkOffice.IsChecked
-                InstallUmbrella = $chkUmbrella.IsChecked
-                InstallDellCmd = $chkDellCmd.IsChecked
-                # No ClearTPM anymore
                 EnrollAutopilot = $chkEnroll.IsChecked
                 UseCommunityScript = $chkCommunityScript.IsChecked
                 GroupTag = $cmbGroupTag.Text

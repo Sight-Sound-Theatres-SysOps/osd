@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.6.29.1'
+$ScriptVersion = '25.6.29.2'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -162,9 +162,6 @@ if ($WindowsPhase -eq 'OOBE') {
         # Now outside the loop, run installs if the user didn't cancel
         if ($result) {
             if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps | Out-Null }
-            if ($result.InstallUmbrella) { step-oobeMenu_InstallUmbrella | Out-Null }
-            if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd | Out-Null }
-            if ($result.ClearTPM)        { step-oobeMenu_ClearTPM | Out-Null }
             if ($result.EnrollAutopilot) {
                 step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword -UseCommunityScript $result.UseCommunityScript
                 Write-Host GroupTag: $result.GroupTag

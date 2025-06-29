@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.29.4'
+$ScriptVersion = '25.6.29.5'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -59,26 +59,6 @@ function step-oobeMenu_InstallM365Apps {
         Write-Host -ForegroundColor Red "[!] Error running M365 install: $_"
         return $false
     }
-}
-
-
-function step-oobeMenu_InstallUmbrella {
-    [CmdletBinding()]
-    param ()  
-
-    invoke-expression -command (Invoke-RestMethod -Uri "https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/refs/heads/main/cloudscripts/Cisco/install-umbrella.ps1")
-}
-
-
-function step-oobeMenu_InstallDellCmd {
-    [CmdletBinding()]
-    param ()  
-    
-    Write-Host -ForegroundColor Yellow "[-] Installing Dell Commandupdate"
-    powershell winget install --id Dell.CommandUpdate --accept-package-agreements --accept-source-agreements
-    Write-Host -ForegroundColor Yellow "[-] Running Dell CommandUpdate to apply updates"
-    powershell invoke-expression (Invoke-RestMethod -Uri "dell.sight-sound.dev")
-    powershell invoke-dcu -applyUpdates -reboot Disable
 }
 
 function step-oobeMenu_RegisterAutopilot {
