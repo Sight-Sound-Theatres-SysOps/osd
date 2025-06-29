@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.29.3'
+$ScriptVersion = '25.6.29.4'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -107,8 +107,8 @@ function step-oobeMenu_RegisterAutopilot {
     # Install the appropriate script based on the flag
     if ($UseCommunityScript) {
         Write-Host -ForegroundColor Yellow "[-] Installing Community Autopilot script..."
-        Install-Script Get-WindowsAutopilotinfoCommunity -Force
-        $scriptName = "Get-WindowsAutopilotinfoCommunity.ps1"
+        Install-Script Get-WindowsAutopilotInfoCommunity -Force
+        $scriptName = "Get-WindowsAutopilotInfoCommunity.ps1"
     } else {
         Write-Host -ForegroundColor Yellow "[-] Installing standard Autopilot script..."
         Install-Script Get-WindowsAutopilotInfo -Force
@@ -123,7 +123,7 @@ function step-oobeMenu_RegisterAutopilot {
         Write-Host -ForegroundColor Yellow "[!] Tag: $GroupTag - Computer Name: $ComputerName - Group: $Group"
 
         if ($UseCommunityScript) {
-            & Get-WindowsAutopilotCommunity.ps1 -Assign `
+            & Get-WindowsAutopilotInfoCommunity.ps1 -Assign `
                 -GroupTag $GroupTag `
                 -AssignedComputerName $ComputerName `
                 -AddToGroup $Group `
