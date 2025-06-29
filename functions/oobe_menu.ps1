@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.29.2'
+$ScriptVersion = '25.6.29.3'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -238,7 +238,6 @@ function step-oobemenu {
         if ($txtManModel)     { $txtManModel.Text     = "N/A" }
         if ($lblCpuLabel)     { $lblCpuLabel.Visibility = "Collapsed" }
         if ($txtCpu)          { $txtCpu.Visibility = "Collapsed" }
-        }
     }
 
     # Set Time Zone display
