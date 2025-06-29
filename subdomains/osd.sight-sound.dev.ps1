@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.6.28.1'
+$ScriptVersion = '25.6.29.1'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -166,7 +166,7 @@ if ($WindowsPhase -eq 'OOBE') {
             if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd | Out-Null }
             if ($result.ClearTPM)        { step-oobeMenu_ClearTPM | Out-Null }
             if ($result.EnrollAutopilot) {
-                step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
+                step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword -UseCommunityScript $result.UseCommunityScript
                 Write-Host GroupTag: $result.GroupTag
                 Write-Host Group: $result.Group
                 Write-Host ComputerName: $result.ComputerName

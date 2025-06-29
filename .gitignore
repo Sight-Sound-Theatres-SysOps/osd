@@ -1,0 +1,7 @@
+# Ignore all analysis markdown files
+*analysis*.md
+*suggestions*.md
+
+# You can also add other files you want to ignore
+*.log
+*.tmp

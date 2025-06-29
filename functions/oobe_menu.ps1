@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.28.19'
+$ScriptVersion = '25.6.29.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -96,7 +96,10 @@ function step-oobemenu {
         <Border Grid.Column="1" Grid.Row="0" Background="#FF23272E" CornerRadius="8" Padding="16" Margin="10,0,0,0" Width="480" MinHeight="360">
             <StackPanel>
                 <TextBlock Text="Autopilot" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" Foreground="White"/>
-                <CheckBox Name="chkEnroll" Content="Enroll in Autopilot" Margin="0,0,0,16" Foreground="White"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <CheckBox Name="chkEnroll" Content="Enroll in Autopilot" Foreground="White"/>
+                    <CheckBox Name="chkCommunityScript" Content="Use Community Script" Margin="20,0,0,0" Foreground="White"/>
+                </StackPanel>
                 <TextBlock Text="Group Tag:" Foreground="White"/>
                 <ComboBox Name="cmbGroupTag" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
                     <ComboBoxItem Content="Entreprise" />
@@ -148,27 +151,28 @@ function step-oobemenu {
     }
 
     # Controls
-    $chkOffice      = Find-Name 'chkOffice'
-    $chkUmbrella    = Find-Name 'chkUmbrella'
-    $chkDellCmd     = Find-Name 'chkDellCmd'
-    $lblTPM         = Find-Name 'lblTPM'
-    $chkEnroll      = Find-Name 'chkEnroll'
-    $cmbGroupTag    = Find-Name 'cmbGroupTag'
-    $cmbGroup       = Find-Name 'cmbGroup'
-    $txtComputerName= Find-Name 'txtComputerName'
-    $pwdEnrollment  = Find-Name 'pwdEnrollment'
-    $lblTime        = Find-Name 'lblTime'
-    $lblTimeZone    = Find-Name 'lblTimeZone'
-    $btnCancel      = Find-Name 'btnCancel'
-    $btnContinue    = Find-Name 'btnContinue'
-    $txtManufacturer = Find-Name 'txtManufacturer'
-    $txtModel        = Find-Name 'txtModel'
-    $txtSerial       = Find-Name 'txtSerial'
-    $txtBios         = Find-Name 'txtBios'
-    $lblCpuLabel     = Find-Name 'lblCpuLabel'
-    $txtCpu          = Find-Name 'txtCpu'
-    $txtWinget       = Find-Name 'txtWinget'
-    $txtManModel     = Find-Name 'txtManModel'
+    $chkOffice          = Find-Name 'chkOffice'
+    $chkUmbrella        = Find-Name 'chkUmbrella'
+    $chkDellCmd         = Find-Name 'chkDellCmd'
+    $lblTPM             = Find-Name 'lblTPM'
+    $chkEnroll          = Find-Name 'chkEnroll'
+    $chkCommunityScript = Find-Name 'chkCommunityScript'
+    $cmbGroupTag        = Find-Name 'cmbGroupTag'
+    $cmbGroup           = Find-Name 'cmbGroup'
+    $txtComputerName    = Find-Name 'txtComputerName'
+    $pwdEnrollment      = Find-Name 'pwdEnrollment'
+    $lblTime            = Find-Name 'lblTime'
+    $lblTimeZone        = Find-Name 'lblTimeZone'
+    $btnCancel          = Find-Name 'btnCancel'
+    $btnContinue        = Find-Name 'btnContinue'
+    $txtManufacturer    = Find-Name 'txtManufacturer'
+    $txtModel           = Find-Name 'txtModel'
+    $txtSerial          = Find-Name 'txtSerial'
+    $txtBios            = Find-Name 'txtBios'
+    $lblCpuLabel        = Find-Name 'lblCpuLabel'
+    $txtCpu             = Find-Name 'txtCpu'
+    $txtWinget          = Find-Name 'txtWinget'
+    $txtManModel        = Find-Name 'txtManModel'
 
     #Hide Dell Command Update and Cisco Umbrella options
     if ($chkUmbrella) { $chkUmbrella.Visibility = "Collapsed" }
@@ -178,10 +182,11 @@ function step-oobemenu {
     if ($chkEnroll) {
         $handler = {
             $enabled = $chkEnroll.IsChecked -eq $true
-            $cmbGroupTag.IsEnabled    = $enabled
-            $cmbGroup.IsEnabled       = $enabled
-            $txtComputerName.IsEnabled= $enabled
-            $pwdEnrollment.IsEnabled  = $enabled
+            $cmbGroupTag.IsEnabled        = $enabled
+            $cmbGroup.IsEnabled           = $enabled
+            $txtComputerName.IsEnabled    = $enabled
+            $pwdEnrollment.IsEnabled      = $enabled
+            $chkCommunityScript.IsEnabled = $enabled
         }
         $null = $chkEnroll.Add_Checked($handler)
         $null = $chkEnroll.Add_Unchecked($handler)
@@ -323,6 +328,7 @@ function step-oobemenu {
                 InstallDellCmd = $chkDellCmd.IsChecked
                 # No ClearTPM anymore
                 EnrollAutopilot = $chkEnroll.IsChecked
+                UseCommunityScript = $chkCommunityScript.IsChecked
                 GroupTag = $cmbGroupTag.Text
                 Group = $cmbGroup.Text
                 ComputerName = $txtComputerName.Text

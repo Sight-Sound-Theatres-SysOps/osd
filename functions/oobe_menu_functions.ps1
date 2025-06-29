@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.28.5'
+$ScriptVersion = '25.6.29.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -87,7 +87,8 @@ function step-oobeMenu_RegisterAutopilot {
         [string]$GroupTag,
         [string]$Group,
         [string]$ComputerName,
-        [string]$EnrollmentPassword
+        [string]$EnrollmentPassword,
+        [switch]$UseCommunityScript
     )
 
     Write-Host -ForegroundColor Yellow "[-] Registering with Windows Autopilot"
@@ -103,31 +104,51 @@ function step-oobeMenu_RegisterAutopilot {
     $appID     = $jsonContent.appid
     $appsecret = $jsonContent.appsecret
 
-    # Install the get-windowsautopilotinfo script
-    Install-Script Get-WindowsAutopilotInfo -Force
+    # Install the appropriate script based on the flag
+    if ($UseCommunityScript) {
+        Write-Host -ForegroundColor Yellow "[-] Installing Community Autopilot script..."
+        Install-Script Get-WindowsAutopilotCommunity -Force
+        $scriptName = "Get-WindowsAutopilotCommunity.ps1"
+    } else {
+        Write-Host -ForegroundColor Yellow "[-] Installing standard Autopilot script..."
+        Install-Script Get-WindowsAutopilotInfo -Force
+        $scriptName = "Get-WindowsAutopilotInfo.ps1"
+    }
+    
     Install-Script Get-AutopilotDiagnosticsCommunity -Force 
 
-    # Run the script
+    # Run the appropriate script
     try {
-        Write-Host -ForegroundColor Green "[+] Running Get-WindowsAutopilotInfo script..."
+        Write-Host -ForegroundColor Green "[+] Running $scriptName..."
         Write-Host -ForegroundColor Yellow "[!] Tag: $GroupTag - Computer Name: $ComputerName - Group: $Group"
 
-        Get-WindowsAutopilotInfo.ps1 -Assign `
-            -GroupTag $GroupTag `
-            -AssignedComputerName $ComputerName `
-            -AddToGroup $Group `
-            -online `
-            -TenantID $TenantID `
-            -appID $appID `
-            -appsecret $appsecret
-        Write-Host -ForegroundColor Green "[+] Autopilot registration completed."
+        if ($UseCommunityScript) {
+            & Get-WindowsAutopilotCommunity.ps1 -Assign `
+                -GroupTag $GroupTag `
+                -AssignedComputerName $ComputerName `
+                -AddToGroup $Group `
+                -online `
+                -TenantID $TenantID `
+                -appID $appID `
+                -appsecret $appsecret
+        } else {
+            & Get-WindowsAutopilotInfo.ps1 -Assign `
+                -GroupTag $GroupTag `
+                -AssignedComputerName $ComputerName `
+                -AddToGroup $Group `
+                -online `
+                -TenantID $TenantID `
+                -appID $appID `
+                -appsecret $appsecret
+        }
+        
+        Write-Host -ForegroundColor Green "[+] Autopilot registration completed using $(if ($UseCommunityScript) { 'Community' } else { 'Standard' }) script."
         return $true
     } catch {
         Write-Host -ForegroundColor Red "[!] Error during Autopilot registration: $_"
         return $false
     }
 }
-
 
 function Test-AutopilotPassword {
     param (
