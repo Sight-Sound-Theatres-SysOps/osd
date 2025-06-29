@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.28.18'
+$ScriptVersion = '25.6.28.19'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -170,7 +170,8 @@ function step-oobemenu {
     $txtWinget       = Find-Name 'txtWinget'
     $txtManModel     = Find-Name 'txtManModel'
 
-    #Hide Dell Command Update option
+    #Hide Dell Command Update and Cisco Umbrella options
+    if ($chkUmbrella) { $chkUmbrella.Visibility = "Collapsed" }
     if ($chkDellCmd) { $chkDellCmd.Visibility = "Collapsed" }
 
     # --- Disable/Enable Autopilot Fields based on checkbox ---
