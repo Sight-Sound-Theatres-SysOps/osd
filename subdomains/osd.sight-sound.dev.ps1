@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.6.16.1'
+$ScriptVersion = '25.6.28.1'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -49,8 +49,13 @@ else {
 }
 
 Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
+#endregion
+
+#region import functions
 Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/OSDeploy/OSD/master/cloud/functions.ps1)
 Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobeFunctions.ps1)
+Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobe_menu_functions.ps1)
+Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobe_menu.ps1)
 #endregion
 
 #region Admin Elevation
@@ -97,6 +102,7 @@ if ($WindowsPhase -eq 'AuditMode') {
 #region OOBE
 if ($WindowsPhase -eq 'OOBE') {
     #Load everything needed to setup a new computer and register to AutoPilot
+    step-PendingReboot | Out-Null
     step-installCertificates
     step-setTimeZoneFromIP
     step-SetExecutionPolicy
@@ -108,9 +114,65 @@ if ($WindowsPhase -eq 'OOBE') {
     #step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
     #step-InstallWinget
     step-desktopWallpaper
-    step-InstallM365Apps    
-    step-oobeSetDateTime
-    step-oobeRegisterAutopilot 
+
+    # --- Load OOBE Menu ---
+        $valid = $false
+        while (-not $valid) {
+            $result = step-oobemenu
+
+            if (-not $result) {
+                Write-Host -ForegroundColor Yellow "[!] User cancelled OOBE menu. Exiting script."
+                Stop-Transcript -ErrorAction Ignore
+                exit
+        }
+
+            # --- Force Computer Name Uppercase ---
+            if ($result.ComputerName) {
+                $result.ComputerName = $result.ComputerName.ToUpper()
+            }
+
+            # --- Validate Computer Name Length ---
+            if ($result.ComputerName -and $result.ComputerName.Length -gt 15) {
+                [System.Windows.MessageBox]::Show(
+                    "Computer Name must be 15 characters or less.",
+                    "Input Error",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Warning
+                ) | Out-Null
+                continue # Go back to the menu for correction
+            }
+
+            $apPassed = $true
+            if ($result.EnrollAutopilot) {
+                $plainPass = $result.EnrollmentPassword
+                $apTest = Test-AutopilotPassword -Password $plainPass
+                if (-not $apTest) {
+                    [System.Windows.MessageBox]::Show(
+                        "Autopilot password is incorrect. Please try again.",
+                        "Autopilot Error",
+                        [System.Windows.MessageBoxButton]::OK,
+                        [System.Windows.MessageBoxImage]::Error
+                    ) | Out-Null
+                    continue  # Loop again to retry the menu!
+                }
+                $apPassed = $apTest
+            }
+            $valid = $true
+        }
+        # Now outside the loop, run installs if the user didn't cancel
+        if ($result) {
+            if ($result.InstallOffice)   { step-oobeMenu_InstallM365Apps | Out-Null }
+            if ($result.InstallUmbrella) { step-oobeMenu_InstallUmbrella | Out-Null }
+            if ($result.InstallDellCmd)  { step-oobeMenu_InstallDellCmd | Out-Null }
+            if ($result.ClearTPM)        { step-oobeMenu_ClearTPM | Out-Null }
+            if ($result.EnrollAutopilot) {
+                step-oobeMenu_RegisterAutopilot -GroupTag $result.GroupTag -Group $result.Group -ComputerName $result.ComputerName -EnrollmentPassword $result.EnrollmentPassword
+                Write-Host GroupTag: $result.GroupTag
+                Write-Host Group: $result.Group
+                Write-Host ComputerName: $result.ComputerName
+            }
+        }
+
     step-oobeRemoveAppxPackageAllUsers
     step-oobeSetUserRegSettings
     step-oobeSetDeviceRegSettings   
