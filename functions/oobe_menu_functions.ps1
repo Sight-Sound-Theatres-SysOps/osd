@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.29.1'
+$ScriptVersion = '25.6.29.2'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -88,7 +88,7 @@ function step-oobeMenu_RegisterAutopilot {
         [string]$Group,
         [string]$ComputerName,
         [string]$EnrollmentPassword,
-        [switch]$UseCommunityScript
+        [bool]$UseCommunityScript
     )
 
     Write-Host -ForegroundColor Yellow "[-] Registering with Windows Autopilot"
