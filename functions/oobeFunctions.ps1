@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobeFunctions.sight-sound.dev'
-$ScriptVersion = '25.6.28.3'
+$ScriptVersion = '25.6.30.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -126,7 +126,6 @@ function Step-installCertificates {
 
             # Clean up the downloaded file
             Remove-Item $certFile -Force
-            Write-Host -ForegroundColor Green "[+] $($cert.Name) root certificate installed"
         }
     }
 }
