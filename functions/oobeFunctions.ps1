@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobeFunctions.sight-sound.dev'
-$ScriptVersion = '25.6.28.2'
+$ScriptVersion = '25.6.28.3'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -1013,7 +1013,7 @@ function step-InstallPowerShellModule {
 function step-PendingReboot {
     # Checks common locations for pending reboot
     function Test-PendingReboot {
-        Write-Host -ForegroundColor Yellow "[-] Checking for pending reboot..."
+        Write-Host -ForegroundColor Yellow "[-] Checking for Windows Update pending reboot..."
         $rebootPending = $false
         # Check for CBS Reboot Pending
         $cbs = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
@@ -1022,10 +1022,6 @@ function step-PendingReboot {
         # Check for Windows Update Reboot Required
         $wu = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
         if (Test-Path $wu) { $rebootPending = $true }
-
-        # Check for Pending File Rename Operations
-        $pfro = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name 'PendingFileRenameOperations' -ErrorAction SilentlyContinue
-        if ($pfro) { $rebootPending = $true }
 
         return $rebootPending
     }
