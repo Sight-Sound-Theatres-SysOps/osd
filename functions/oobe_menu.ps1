@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.29.3'
+$ScriptVersion = '25.6.29.4'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -96,7 +96,7 @@ function step-oobemenu {
                 <TextBlock Text="Autopilot" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" Foreground="White"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                     <CheckBox Name="chkEnroll" Content="Enroll in Autopilot" Foreground="White"/>
-                    <CheckBox Name="chkCommunityScript" Content="Use Community Script" Margin="20,0,0,0" Foreground="White"/>
+                    <CheckBox Name="chkCommunityScript" Content="Use Community Script (Experimental)" Margin="20,0,0,0" Foreground="White"/>
                 </StackPanel>
                 <TextBlock Text="Group Tag:" Foreground="White"/>
                 <ComboBox Name="cmbGroupTag" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
