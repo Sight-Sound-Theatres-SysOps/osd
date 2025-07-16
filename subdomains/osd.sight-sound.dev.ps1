@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.7.16.1'
+$ScriptVersion = '25.7.16.2'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -185,7 +185,6 @@ if ($WindowsPhase -eq 'Windows') {
     #Load OSD and Azure stuff
     $null = Stop-Transcript -ErrorAction Ignore
 
-    Write-Host -ForegroundColor Green "[✓] Windows Phase - Redirecting to cloud scripts"
     Invoke-Expression (Invoke-RestMethod scripts.sight-sound.dev)
 }
 
