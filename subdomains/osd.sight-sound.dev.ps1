@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.7.15.1'
+$ScriptVersion = '25.7.16.1'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -62,7 +62,7 @@ Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent
 $whoiam = [system.security.principal.windowsidentity]::getcurrent().name
 $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 if ($isElevated) {
-    Write-Host -ForegroundColor Green "[✓] Running as $whoiam (Admin Elevated)"
+    Write-Host -ForegroundColor Green "[+] Running as $whoiam (Admin Elevated)"
 }
 else {
     Write-Host -ForegroundColor Red "[!] Running as $whoiam (NOT Admin Elevated)"
@@ -71,7 +71,7 @@ else {
 #endregion
 
 #region Transport Layer Security (TLS) 1.2
-Write-Host -ForegroundColor Green "[✓] Transport Layer Security (TLS) 1.2"
+Write-Host -ForegroundColor Green "[+] Transport Layer Security (TLS) 1.2"
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 #endregion
 
