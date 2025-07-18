@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.6.29.4'
+$ScriptVersion = '25.7.18.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -26,7 +26,7 @@ function step-oobemenu {
 
     function Get-TpmVersion {
         try {
-            $tpm = Get-WmiObject -Namespace "Root\CIMv2\Security\MicrosoftTpm" -Class Win32_Tpm -ErrorAction Stop
+            $tpm = Get-CimInstance -Namespace "Root\CIMv2\Security\MicrosoftTpm" -ClassName Win32_Tpm -ErrorAction Stop
             if ($tpm) { return $tpm.SpecVersion }
             return $null
         } catch { return $null }
@@ -208,9 +208,9 @@ function step-oobemenu {
 
     # Get Computer Details
     try {
-        $compSys = Get-WmiObject -Class Win32_ComputerSystem
-        $bios    = Get-WmiObject -Class Win32_BIOS
-        $proc    = Get-WmiObject -Class Win32_Processor | Select-Object -First 1
+        $compSys = Get-CimInstance -ClassName Win32_ComputerSystem
+        $bios    = Get-CimInstance -ClassName Win32_BIOS
+        $proc    = Get-CimInstance -ClassName Win32_Processor | Select-Object -First 1
 
         if ($txtManufacturer) { $txtManufacturer.Text  = $compSys.Manufacturer }
         if ($txtModel)        { $txtModel.Text         = $compSys.Model }
