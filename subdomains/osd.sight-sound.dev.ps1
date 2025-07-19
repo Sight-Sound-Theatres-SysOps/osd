@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.7.16.2'
+$ScriptVersion = '25.7.18.1'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -110,9 +110,7 @@ if ($WindowsPhase -eq 'OOBE') {
     step-InstallPackageManagement
     step-TrustPSGallery
     #step-InstallPowerSHellModule -Name Pester
-    step-InstallPowerSHellModule -Name PSReadLine    
-    #step-InstallPowerSHellModule -name Microsoft.WinGet.Client 
-    #step-InstallWinget
+    step-InstallPowerSHellModule -Name PSReadLine   
     step-desktopWallpaper
 
     # --- Load OOBE Menu ---
@@ -185,6 +183,7 @@ if ($WindowsPhase -eq 'Windows') {
     #Load OSD and Azure stuff
     $null = Stop-Transcript -ErrorAction Ignore
 
+    Write-Host -ForegroundColor Green "[+] Windows Phase - Redirecting to cloud scripts"
     Invoke-Expression (Invoke-RestMethod scripts.sight-sound.dev)
 }
 
