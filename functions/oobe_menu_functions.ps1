@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.6.29.5'
+$ScriptVersion = '25.7.18.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -17,9 +17,10 @@ else {
 
 Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 
-##=====================##
-##      FUNCTIONS      ## 
-##=====================##
+##===============================##
+##           FUNCTIONS           ## 
+##===============================##
+
 function step-oobeMenu_InstallM365Apps {
     $marker = 'C:\OSDCloud\Scripts\m365AppsInstalled.txt'
     $scriptDirectory = "C:\OSDCloud\Scripts"

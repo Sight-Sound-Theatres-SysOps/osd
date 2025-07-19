@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobeFunctions.sight-sound.dev'
-$ScriptVersion = '25.7.18.1'
+$ScriptVersion = '25.7.18.2'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -56,9 +56,9 @@ $Global:oobeCloud = @{
     )
 }
 
-#=================================================
-#   oobeFunctions
-#=================================================
+##===============================##
+##           FUNCTIONS           ## 
+##===============================##
 
 function Step-PendingReboot {
     # Checks common locations for pending reboot
