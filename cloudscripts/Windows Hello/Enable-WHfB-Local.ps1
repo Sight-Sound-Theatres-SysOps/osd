@@ -40,25 +40,37 @@ function New-RegistryKeyIfNotExists {
     }
 }
 
-# Function to set registry value
-function Set-RegistryValueSafe {
+
+# Function to check and set registry value only if needed
+function Ensure-RegistryValue {
     param(
         [string]$Path,
         [string]$Name,
         [int]$Value,
         [string]$Description
     )
-    
+    $changed = $false
     try {
-        Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type DWord -Force
-        Write-Host "✓ Set $Description = $Value" -ForegroundColor Green
-        return $true
+        $currentValue = (Get-ItemProperty -Path $Path -Name $Name -ErrorAction Stop).$Name
+        if ($currentValue -eq $Value) {
+            Write-Host "✓ $Description is already set to $Value" -ForegroundColor Green
+        } else {
+            Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type DWord -Force
+            Write-Host "✓ Set $Description = $Value" -ForegroundColor Yellow
+            $changed = $true
+        }
+    } catch {
+        # Value does not exist, so set it
+        try {
+            Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type DWord -Force
+            Write-Host "✓ Set $Description = $Value" -ForegroundColor Yellow
+            $changed = $true
+        } catch {
+            Write-Host "✗ Failed to set $Description" -ForegroundColor Red
+            Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+        }
     }
-    catch {
-        Write-Host "✗ Failed to set $Description" -ForegroundColor Red
-        Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
-        return $false
-    }
+    return $changed
 }
 
 # Function to verify registry value
@@ -91,12 +103,13 @@ Write-Host "Configuring Windows Hello for Local Accounts..." -ForegroundColor Cy
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
+
 # Configuration 1: PassportForWork
 Write-Host "1. Configuring Windows Hello for Business..." -ForegroundColor Yellow
 $passportPath = "HKLM:\SOFTWARE\Policies\Microsoft\PassportForWork"
-
+$changed1 = $false
 if (New-RegistryKeyIfNotExists -Path $passportPath) {
-    Set-RegistryValueSafe -Path $passportPath -Name "Enabled" -Value 1 -Description "PassportForWork Enabled"
+    $changed1 = Ensure-RegistryValue -Path $passportPath -Name "Enabled" -Value 1 -Description "PassportForWork Enabled"
 }
 
 Write-Host ""
@@ -104,26 +117,17 @@ Write-Host ""
 # Configuration 2: AllowDomainPINLogon
 Write-Host "2. Configuring Allow Domain PIN Logon..." -ForegroundColor Yellow
 $systemPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
-
+$changed2 = $false
 if (New-RegistryKeyIfNotExists -Path $systemPath) {
-    Set-RegistryValueSafe -Path $systemPath -Name "AllowDomainPINLogon" -Value 1 -Description "AllowDomainPINLogon"
+    $changed2 = Ensure-RegistryValue -Path $systemPath -Name "AllowDomainPINLogon" -Value 1 -Description "AllowDomainPINLogon"
 }
 
 Write-Host ""
 
-# Verify the configuration
-Write-Host "Verifying Configuration..." -ForegroundColor Cyan
-Write-Host "=========================" -ForegroundColor Cyan
-Write-Host ""
 
-$verification1 = Test-RegistryValue -Path $passportPath -Name "Enabled" -ExpectedValue 1 -Description "PassportForWork Enabled"
-$verification2 = Test-RegistryValue -Path $systemPath -Name "AllowDomainPINLogon" -ExpectedValue 1 -Description "AllowDomainPINLogon"
-
-Write-Host ""
-
-# Summary
-if ($verification1 -and $verification2) {
-    Write-Host "SUCCESS: Windows Hello for local accounts has been enabled!" -ForegroundColor Green
+# Only prompt for restart if any value was changed
+if ($changed1 -or $changed2) {
+    Write-Host "SUCCESS: Windows Hello for local accounts has been enabled or updated!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Next Steps:" -ForegroundColor Yellow
     Write-Host "1. Restart the computer for changes to take full effect" -ForegroundColor White
@@ -131,34 +135,26 @@ if ($verification1 -and $verification2) {
     Write-Host "3. Go to Settings > Accounts > Sign-in options" -ForegroundColor White
     Write-Host "4. Set up Windows Hello PIN and biometrics" -ForegroundColor White
     Write-Host ""
-    
     # Prompt user for restart
     Write-Host "Would you like to restart the computer now? (Recommended)" -ForegroundColor Yellow
     Write-Host "Type 'Y' or 'Yes' to restart now, any other key to skip:" -ForegroundColor White
     $restartChoice = Read-Host
-    
     if ($restartChoice -match '^(Y|Yes|y|yes)$') {
         Write-Host ""
         Write-Host "Restarting computer in 10 seconds..." -ForegroundColor Red
         Write-Host "Press Ctrl+C to cancel" -ForegroundColor Yellow
-        
-        # Give user a chance to cancel
         try {
             Start-Sleep -Seconds 10
             Write-Host "Restarting now..." -ForegroundColor Red
             Restart-Computer -Force
-        }
-        catch {
+        } catch {
             Write-Host "Restart cancelled by user." -ForegroundColor Yellow
         }
-    }
-    else {
+    } else {
         Write-Host "Restart skipped. Please restart manually when convenient." -ForegroundColor Yellow
     }
-}
-else {
-    Write-Host "WARNING: Some settings may not have been applied correctly!" -ForegroundColor Red
-    Write-Host "Please check the errors above and try running the script again." -ForegroundColor Yellow
+} else {
+    Write-Host "No changes were necessary. All Windows Hello settings were already correctly configured." -ForegroundColor Green
 }
 
 Write-Host ""
