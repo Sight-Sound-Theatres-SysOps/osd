@@ -119,7 +119,7 @@ Write-Host "2. Configuring Allow Domain PIN Logon..." -ForegroundColor Yellow
 $systemPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
 $changed2 = $false
 if (New-RegistryKeyIfNotExists -Path $systemPath) {
-    $changed2 = Ensure-RegistryValue -Path $systemPath -Name "AllowDomainPINLogon" -Value 1 -Description "AllowDomainPINLogon"
+    $changed2 = Ensure-RegistryValue -Path $systemPath -Name "AllowDomainPINLogon" -Value 0 -Description "AllowDomainPINLogon"
 }
 
 Write-Host ""
