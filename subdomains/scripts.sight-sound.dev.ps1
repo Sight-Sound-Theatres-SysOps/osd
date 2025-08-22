@@ -187,4 +187,4 @@ if ($isAdmin) {
     Write-Host -ForegroundColor Cyan "Start-OSDCloudScriptsGUI can be run in the new PowerShell window"
 }
 
-Start-OSDCloudScriptsGUI -Path $ScriptFiles
+Start-CloudScriptsGUI -Path $ScriptFiles
