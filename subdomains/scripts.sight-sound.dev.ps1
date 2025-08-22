@@ -141,7 +141,7 @@ if ($Repository) {
     
     # PowerShell Module
     if ($isAdmin) {
-        $ModulePath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules\OSDCloudScriptsGUI"
+        $ModulePath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules\CloudScriptsGUI"
         if (Test-Path $ModulePath) {
             Remove-Item $ModulePath -Recurse -Force
         }
