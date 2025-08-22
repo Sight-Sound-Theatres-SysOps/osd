@@ -97,7 +97,7 @@ if ($Repository) {
 
 # OSDCloudScriptsGUI
     $ScriptGuiFileName = 'OSDCloudScriptsGUI.zip'
-    $ScriptGuiUrl = 'https://github.com/1eyeITguy/CloudScriptsGUI/archive/refs/heads/main.zip'
+    $ScriptGuiUrl = 'https://github.com/OSDeploy/OSDCloudScriptsGUI/archive/refs/heads/main.zip'
 
     $GUIOutFile = Join-Path $env:TEMP $ScriptGuiFileName
     # Remove existing Zip file
@@ -141,7 +141,7 @@ if ($Repository) {
     
     # PowerShell Module
     if ($isAdmin) {
-        $ModulePath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules\CloudScriptsGUI"
+        $ModulePath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules\OSDCloudScriptsGUI"
         if (Test-Path $ModulePath) {
             Remove-Item $ModulePath -Recurse -Force
         }
@@ -166,7 +166,7 @@ if ($Repository) {
         }
     }
     else {
-        $ModulePath = "$env:TEMP\OSDCloudScriptsGUI\OSDCloudScriptsGUI-main\CloudScriptsGUI.psm1"
+        $ModulePath = "$env:TEMP\OSDCloudScriptsGUI\OSDCloudScriptsGUI-main\OSDCloudScriptsGUI.psm1"
         try {
             Import-Module $ModulePath -Force -ErrorAction Stop
             Write-Host -ForegroundColor Green "[+] Import-Module $ModulePath -Force"
@@ -187,4 +187,4 @@ if ($isAdmin) {
     Write-Host -ForegroundColor Cyan "Start-OSDCloudScriptsGUI can be run in the new PowerShell window"
 }
 
-Start-CloudScriptsGUI -Path $ScriptFiles
+Start-OSDCloudScriptsGUI -Path $ScriptFiles
