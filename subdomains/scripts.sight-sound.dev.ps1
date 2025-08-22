@@ -97,7 +97,7 @@ if ($Repository) {
 
 # OSDCloudScriptsGUI
     $ScriptGuiFileName = 'OSDCloudScriptsGUI.zip'
-    $ScriptGuiUrl = 'https://github.com/OSDeploy/OSDCloudScriptsGUI/archive/refs/heads/main.zip'
+    $ScriptGuiUrl = 'https://github.com/1eyeITguy/CloudScriptsGUI/archive/refs/heads/main.zip'
 
     $GUIOutFile = Join-Path $env:TEMP $ScriptGuiFileName
     # Remove existing Zip file
