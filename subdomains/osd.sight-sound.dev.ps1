@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.7.18.1'
+$ScriptVersion = '25.10.2.1'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -78,6 +78,7 @@ Write-Host -ForegroundColor Green "[+] Transport Layer Security (TLS) 1.2"
 #region WinPE
 if ($WindowsPhase -eq 'WinPE') {
     
+    Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/OSDeploy/OSD/refs/heads/master/cloud/modules/_anywhere.psm1)
     osdcloud-StartWinPE -OSDCloud
 
     Invoke-Expression (Invoke-RestMethod https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/Win11.ps1)
