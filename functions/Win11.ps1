@@ -1,13 +1,13 @@
 
-$ScriptName = '[+] Sight & Sound Windows 11 Pro 24H2 Deployment'
-$ScriptVersion = '25.5.26.1'
+$ScriptName = '[+] Sight & Sound Windows 11 Pro 25H2 Deployment'
+$ScriptVersion = '25.10.2.1'
 Write-Host -ForegroundColor Green "$ScriptName $ScriptVersion"
 
 #Variables to define the Windows OS / Edition etc to be applied during OSDCloud
 $Product = (Get-MyComputerProduct)
 $OSVersion = 'Windows 11' #Used to Determine Driver Pack
-$OSReleaseID = '24H2' #Used to Determine Driver Pack
-$OSName = 'Windows 11 24H2 x64'
+$OSReleaseID = '25H2' #Used to Determine Driver Pack
+$OSName = 'Windows 11 25H2 x64'
 $OSEdition = 'Pro'
 $OSActivation = 'Retail'
 $OSLanguage = 'en-us'
@@ -41,7 +41,7 @@ Write-Host -ForegroundColor Green  "[+] Starting OSDCloud"
 
 # Ask the user if they want to install the latest version of Windows 11
 write-host -ForegroundColor DarkGray "About to run Start-OSDCloud -OSName $OSName -OSEdition $OSEdition -OSActivation $OSActivation -OSLanguage $OSLanguage"
-$response = Read-Host "Would you Install the latest version of Windows 11 v24H2 on this computer? (Y/N)" 
+$response = Read-Host "Would you Install the latest version of Windows 11 v25H2 on this computer? (Y/N)" 
 switch ($response.ToLower()) {
     {'y', 'yes' -contains $_} {
         write-host -ForegroundColor DarkGray "Start-OSDCloud -OSName $OSName -OSEdition $OSEdition -OSActivation $OSActivation -OSLanguage $OSLanguage"
