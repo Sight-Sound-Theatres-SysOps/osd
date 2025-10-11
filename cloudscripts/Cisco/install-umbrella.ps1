@@ -9,9 +9,9 @@ Write-Host ""
 
 # Define file paths
 $tempFolder = "C:\temp"
-$vpnMsiUrl = "https://ssintunedata.blob.core.windows.net/cisco/cisco-secure-client-win-5.1.9.113-core-vpn-predeploy-k9.msi"
+$vpnMsiUrl = "https://ssintunedata.blob.core.windows.net/cisco/cisco-secure-client-win-5.1.12.146-core-vpn-predeploy-k9.msi"
 $vpnMsiPath = "$tempFolder\cisco-secure-client-core-vpn.msi"
-$umbrellaMsiUrl = "https://ssintunedata.blob.core.windows.net/cisco/cisco-secure-client-win-5.1.9.113-umbrella-predeploy-k9.msi"
+$umbrellaMsiUrl = "https://ssintunedata.blob.core.windows.net/cisco/cisco-secure-client-win-5.1.12.146-umbrella-predeploy-k9.msi"
 $umbrellaMsiPath = "$tempFolder\cisco-secure-client-umbrella.msi"
 
 # Create temp folder if it doesn't exist
