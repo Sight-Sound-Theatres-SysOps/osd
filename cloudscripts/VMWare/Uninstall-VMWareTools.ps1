@@ -20,10 +20,10 @@
     Forces removal even if uninstaller reports errors. Default: $false
 
 .EXAMPLE
-    .\Remove-VMwareTools.ps1
+    .\Uninstall-VMWareTools.ps1
     
 .EXAMPLE
-    .\Remove-VMwareTools.ps1 -NoReboot -Force
+    .\Uninstall-VMWareTools.ps1 -NoReboot -Force
 
 .NOTES
     Author: System Administrator
@@ -75,8 +75,14 @@ function Write-Log {
 function Test-VMwareToolsInstalled {
     Write-Log "Checking if VMware Tools is installed..."
     
+    $detectionPoints = 0
+    
     # Check for VMware Tools service
     $vmToolsService = Get-Service -Name "VMTools" -ErrorAction SilentlyContinue
+    if ($vmToolsService) {
+        $detectionPoints++
+        Write-Log "Detection: VMTools service found" -Level Info
+    }
     
     # Check registry for installation
     $regPaths = @(
@@ -84,23 +90,78 @@ function Test-VMwareToolsInstalled {
         "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
     )
     
-    $vmwareInstalled = $false
     foreach ($path in $regPaths) {
         $apps = Get-ItemProperty $path -ErrorAction SilentlyContinue | Where-Object { 
             $_.DisplayName -like "*VMware Tools*" 
         }
         if ($apps) {
-            $vmwareInstalled = $true
+            $detectionPoints++
+            Write-Log "Detection: Registry uninstall entry found" -Level Info
             break
         }
     }
     
-    if ($vmToolsService -or $vmwareInstalled) {
-        Write-Log "VMware Tools installation detected" -Level Success
+    # Check for VMware directories
+    $vmwarePaths = @(
+        "C:\Program Files\VMware",
+        "C:\Program Files (x86)\VMware",
+        "C:\ProgramData\VMware"
+    )
+    
+    foreach ($vmPath in $vmwarePaths) {
+        if (Test-Path $vmPath) {
+            $detectionPoints++
+            Write-Log "Detection: VMware directory found at $vmPath" -Level Info
+            break
+        }
+    }
+    
+    # Check for VMware registry keys
+    $vmwareRegKeys = @(
+        "HKLM:\SOFTWARE\VMware, Inc.",
+        "HKLM:\SOFTWARE\WOW6432Node\VMware, Inc."
+    )
+    
+    foreach ($regKey in $vmwareRegKeys) {
+        if (Test-Path $regKey) {
+            $detectionPoints++
+            Write-Log "Detection: VMware registry key found at $regKey" -Level Info
+            break
+        }
+    }
+    
+    if ($detectionPoints -gt 0) {
+        Write-Log "VMware Tools installation detected ($detectionPoints indicators found)" -Level Success
         return $true
     } else {
-        Write-Log "VMware Tools not found on this system" -Level Warning
+        Write-Log "VMware Tools not found on this system" -Level Success
         return $false
+    }
+}
+
+function Stop-VMwareProcesses {
+    Write-Log "Terminating VMware processes..."
+    
+    $vmwareProcesses = @(
+        "vmtoolsd",
+        "VMwareUser",
+        "vmware-tray",
+        "VMwareHostOpen",
+        "vmware-usbarbitrator64",
+        "vmware-tray.exe"
+    )
+    
+    foreach ($procName in $vmwareProcesses) {
+        $processes = Get-Process -Name $procName -ErrorAction SilentlyContinue
+        if ($processes) {
+            try {
+                Write-Log "Terminating process: $procName"
+                $processes | Stop-Process -Force -ErrorAction Stop
+                Write-Log "Process terminated: $procName" -Level Success
+            } catch {
+                Write-Log "Failed to terminate process $procName : $_" -Level Warning
+            }
+        }
     }
 }
 
@@ -124,6 +185,13 @@ function Stop-VMwareServices {
                     Write-Log "Service stopped: $serviceName" -Level Success
                 } else {
                     Write-Log "Service already stopped: $serviceName" -Level Info
+                }
+                
+                # Delete the service
+                Write-Log "Deleting service: $serviceName"
+                $deleteResult = Start-Process -FilePath "sc.exe" -ArgumentList "delete","$serviceName" -Wait -PassThru -NoNewWindow -ErrorAction SilentlyContinue
+                if ($deleteResult.ExitCode -eq 0) {
+                    Write-Log "Service deleted: $serviceName" -Level Success
                 }
             } catch {
                 Write-Log "Failed to stop service $serviceName : $_" -Level Warning
@@ -160,16 +228,24 @@ function Uninstall-VMwareToolsMSI {
     Write-Log "Attempting MSI uninstallation with product code: $ProductCode"
     
     try {
-        $arguments = "/x `"$ProductCode`" /qn /norestart /l*v `"$LogPath.msi.log`""
+        $arguments = "/x `"$ProductCode`" /qn /norestart REBOOT=ReallySuppress /l*v `"$LogPath.msi.log`""
         
         Write-Log "Executing: msiexec.exe $arguments"
         $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $arguments -Wait -PassThru -NoNewWindow
         
-        if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 3010) {
+        # Exit codes: 0=success, 1605=product not found, 1614=product uninstalled, 3010=reboot required
+        if ($process.ExitCode -in @(0, 1605, 1614, 3010)) {
             Write-Log "MSI uninstallation completed successfully (Exit Code: $($process.ExitCode))" -Level Success
             return $true
         } else {
             Write-Log "MSI uninstallation returned exit code: $($process.ExitCode)" -Level Warning
+            if ($process.ExitCode -eq 1603) {
+                Write-Log "Exit code 1603: Fatal error during uninstallation. This may indicate:" -Level Warning
+                Write-Log "  - Another installation is in progress" -Level Warning
+                Write-Log "  - Insufficient permissions" -Level Warning
+                Write-Log "  - Corrupt installation" -Level Warning
+                Write-Log "Check the MSI log at: $LogPath.msi.log" -Level Info
+            }
             return $false
         }
     } catch {
@@ -184,10 +260,22 @@ function Uninstall-VMwareToolsEXE {
     Write-Log "Attempting EXE uninstallation with command: $UninstallString"
     
     try {
+        # Skip if it's an install command (MsiExec.exe /I) rather than uninstall
+        if ($UninstallString -match '/I\{') {
+            Write-Log "Uninstall string appears to be an install command, skipping EXE method" -Level Warning
+            return $false
+        }
+        
         # Parse the uninstall string
         if ($UninstallString -match '^"?([^"]+)"?\s*(.*)$') {
             $exePath = $Matches[1]
             $arguments = $Matches[2].Trim()
+            
+            # Verify the executable exists
+            if (-not (Test-Path $exePath)) {
+                Write-Log "Uninstall executable not found: $exePath" -Level Warning
+                return $false
+            }
             
             # Add silent parameters if not present
             if ($arguments -notmatch '/S|/silent|/quiet|/qn') {
@@ -208,6 +296,38 @@ function Uninstall-VMwareToolsEXE {
     } catch {
         Write-Log "EXE uninstallation failed: $_" -Level Error
         return $false
+    }
+    
+    return $false
+}
+
+function Uninstall-VMwareToolsSetup {
+    Write-Log "Attempting direct setup.exe uninstallation..."
+    
+    $setupPaths = @(
+        "C:\Program Files\VMware\VMware Tools\setup64.exe",
+        "C:\Program Files (x86)\VMware\VMware Tools\setup.exe",
+        "C:\Program Files\VMware\VMware Tools\setup.exe"
+    )
+    
+    foreach ($setupPath in $setupPaths) {
+        if (Test-Path $setupPath) {
+            try {
+                Write-Log "Found setup at: $setupPath"
+                $arguments = "/S /c /l `"$LogPath.setup.log`""
+                Write-Log "Executing: $setupPath $arguments"
+                $process = Start-Process -FilePath $setupPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+                
+                if ($process.ExitCode -eq 0) {
+                    Write-Log "Setup.exe uninstallation completed successfully" -Level Success
+                    return $true
+                } else {
+                    Write-Log "Setup.exe returned exit code: $($process.ExitCode)" -Level Warning
+                }
+            } catch {
+                Write-Log "Setup.exe uninstallation failed: $_" -Level Warning
+            }
+        }
     }
     
     return $false
@@ -245,7 +365,9 @@ function Remove-VMwareRegistryEntries {
         "HKLM:\SYSTEM\CurrentControlSet\Services\VMTools",
         "HKLM:\SYSTEM\CurrentControlSet\Services\VGAuthService",
         "HKLM:\SYSTEM\CurrentControlSet\Services\VMwareCAFManagementAgentHost",
-        "HKLM:\SYSTEM\CurrentControlSet\Services\VMwareCAFCommAmqpListener"
+        "HKLM:\SYSTEM\CurrentControlSet\Services\VMwareCAFCommAmqpListener",
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{9709436B-5A41-4946-8BE7-2AA433CAF108}",
+        "HKCU:\SOFTWARE\VMware, Inc."
     )
     
     foreach ($regPath in $registryPaths) {
@@ -258,6 +380,56 @@ function Remove-VMwareRegistryEntries {
                 Write-Log "Failed to remove registry key $regPath : $_" -Level Warning
             }
         }
+    }
+    
+    # Remove all VMware Tools uninstall entries dynamically
+    Write-Log "Searching for VMware Tools uninstall entries..."
+    $uninstallPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+    
+    foreach ($path in $uninstallPaths) {
+        try {
+            $vmwareEntries = Get-ItemProperty $path -ErrorAction SilentlyContinue | Where-Object { 
+                $_.DisplayName -like "*VMware Tools*" 
+            }
+            
+            foreach ($entry in $vmwareEntries) {
+                $keyPath = $entry.PSPath
+                try {
+                    Write-Log "Removing VMware uninstall entry: $keyPath"
+                    Remove-Item -Path $keyPath -Recurse -Force -ErrorAction Stop
+                    Write-Log "Removed: $keyPath" -Level Success
+                } catch {
+                    Write-Log "Failed to remove $keyPath : $_" -Level Warning
+                }
+            }
+        } catch {
+            Write-Log "Error searching uninstall entries: $_" -Level Warning
+        }
+    }
+    
+    # Remove Windows Installer cache entries
+    Write-Log "Cleaning Windows Installer cache entries..."
+    try {
+        $installerPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products\*"
+        $products = Get-ChildItem $installerPath -ErrorAction SilentlyContinue
+        
+        foreach ($product in $products) {
+            $installProps = Get-ItemProperty "$($product.PSPath)\InstallProperties" -ErrorAction SilentlyContinue
+            if ($installProps.DisplayName -like "*VMware Tools*") {
+                try {
+                    Write-Log "Removing installer cache for: $($installProps.DisplayName)"
+                    Remove-Item -Path $product.PSPath -Recurse -Force -ErrorAction Stop
+                    Write-Log "Removed installer cache entry" -Level Success
+                } catch {
+                    Write-Log "Failed to remove installer cache: $_" -Level Warning
+                }
+            }
+        }
+    } catch {
+        Write-Log "Error cleaning installer cache: $_" -Level Warning
     }
 }
 
@@ -280,6 +452,58 @@ function Remove-VMwareDrivers {
         }
     } catch {
         Write-Log "Failed to enumerate drivers: $_" -Level Warning
+    }
+}
+
+function Remove-VMwareScheduledTasks {
+    Write-Log "Removing VMware scheduled tasks..."
+    
+    try {
+        $vmwareTasks = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { 
+            $_.TaskName -like "*VMware*" 
+        }
+        
+        if ($vmwareTasks) {
+            foreach ($task in $vmwareTasks) {
+                try {
+                    Write-Log "Removing scheduled task: $($task.TaskName)"
+                    Unregister-ScheduledTask -TaskName $task.TaskName -Confirm:$false -ErrorAction Stop
+                    Write-Log "Removed scheduled task: $($task.TaskName)" -Level Success
+                } catch {
+                    Write-Log "Failed to remove scheduled task $($task.TaskName): $_" -Level Warning
+                }
+            }
+        } else {
+            Write-Log "No VMware scheduled tasks found" -Level Success
+        }
+    } catch {
+        Write-Log "Failed to enumerate scheduled tasks: $_" -Level Warning
+    }
+}
+
+function Remove-VMwareEnvironmentVariables {
+    Write-Log "Removing VMware environment variables..."
+    
+    try {
+        $vmwareEnvVars = [Environment]::GetEnvironmentVariables("Machine").GetEnumerator() | Where-Object { 
+            $_.Key -like "*VMware*" 
+        }
+        
+        if ($vmwareEnvVars) {
+            foreach ($envVar in $vmwareEnvVars) {
+                try {
+                    Write-Log "Removing environment variable: $($envVar.Key)"
+                    [Environment]::SetEnvironmentVariable($envVar.Key, $null, "Machine")
+                    Write-Log "Removed environment variable: $($envVar.Key)" -Level Success
+                } catch {
+                    Write-Log "Failed to remove environment variable $($envVar.Key): $_" -Level Warning
+                }
+            }
+        } else {
+            Write-Log "No VMware environment variables found" -Level Success
+        }
+    } catch {
+        Write-Log "Failed to enumerate environment variables: $_" -Level Warning
     }
 }
 
@@ -310,6 +534,10 @@ try {
         }
     }
     
+    # Terminate VMware processes
+    Stop-VMwareProcesses
+    Start-Sleep -Seconds 2
+    
     # Stop VMware services
     Stop-VMwareServices
     Start-Sleep -Seconds 2
@@ -329,10 +557,20 @@ try {
         }
     }
     
+    # Try direct setup.exe uninstall if other methods failed
+    if (-not $uninstallSuccess) {
+        $uninstallSuccess = Uninstall-VMwareToolsSetup
+    }
+    
     # If uninstall failed and Force is specified, continue with cleanup
-    if (-not $uninstallSuccess -and -not $Force) {
-        Write-Log "Uninstallation failed. Use -Force to continue with manual cleanup" -Level Error
-        exit 1
+    if (-not $uninstallSuccess) {
+        if ($Force) {
+            Write-Log "Uninstallation failed, but -Force specified. Proceeding with manual cleanup..." -Level Warning
+        } else {
+            Write-Log "Uninstallation failed. Use -Force to continue with manual cleanup" -Level Error
+            Write-Log "Example: .\Uninstall-VMWareTools.ps1 -Force" -Level Info
+            exit 1
+        }
     }
     
     # Wait for uninstaller to complete
@@ -344,6 +582,12 @@ try {
     
     # Clean up registry
     Remove-VMwareRegistryEntries
+    
+    # Remove scheduled tasks
+    Remove-VMwareScheduledTasks
+    
+    # Remove environment variables
+    Remove-VMwareEnvironmentVariables
     
     # Check for drivers
     Remove-VMwareDrivers
