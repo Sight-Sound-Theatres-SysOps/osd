@@ -1,3 +1,22 @@
+<#
+.SYNOPSIS
+    Windows Setup Complete automation script for post-installation configuration.
+
+.DESCRIPTION
+    This script runs after Windows installation completes and performs the following tasks:
+    - Configures power settings to prevent sleep during updates
+    - Updates Windows Defender definitions and platform
+    - Installs Windows Updates
+    - Installs driver updates
+    - Sets Windows OEM activation
+    - Restores power plan settings
+    - Logs all activities and reboots the system
+
+.NOTES
+    Author: Matthew Miles
+    Last Modified: December 1, 2025
+#>
+
 Write-Output 'Starting SetupComplete Script Process'
 Set-ExecutionPolicy RemoteSigned -Force -Scope CurrentUser
 
