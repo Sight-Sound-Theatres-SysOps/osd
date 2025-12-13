@@ -54,6 +54,25 @@ powercfg -x -hibernate-timeout-dc 0
 Set-PowerSettingSleepAfter -PowerSource AC -Minutes 0
 Set-PowerSettingTurnMonitorOffAfter -PowerSource AC -Minutes 0
 
+# Configure Delivery Optimization for Microsoft Connected Cache
+Write-Output 'Configuring Delivery Optimization for Microsoft Connected Cache'
+$DORegPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'
+if (!(Test-Path $DORegPath)) {
+    New-Item -Path $DORegPath -Force | Out-Null
+}
+
+# Set to use DHCP Option 235 for cache host
+Set-ItemProperty -Path $DORegPath -Name 'DOCacheHostSource' -Value 1 -Type DWord -Force
+Write-Output 'Delivery Optimization configured to retrieve cache server from DHCP Option 235'
+
+# Renew DHCP lease to ensure we have latest options
+Write-Output 'Renewing DHCP lease'
+ipconfig /release | Out-Null
+Start-Sleep -Seconds 2
+ipconfig /renew | Out-Null
+Start-Sleep -Seconds 2
+Write-Output 'DHCP lease renewed'
+
 # Run Defender Update Stack
 Write-Output "Running Defender Update Stack Function [Update-DefenderStack] | Time: $($(Get-Date).ToString('hh:mm:ss'))"
 Update-DefenderStack
