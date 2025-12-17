@@ -80,7 +80,7 @@ try {
     $verifyValue = Get-ItemProperty -Path $regPath -Name $regName -ErrorAction Stop
     
     if ($verifyValue.$regName -eq $regValue) {
-        Write-Output "✓ Successfully configured $regName = $regValue"
+        Write-Output "Successfully configured $regName = $regValue"
         Write-Output "Delivery Optimization will now use DHCP Option 235 for MCC discovery"
         exit 0  # Success
     }
