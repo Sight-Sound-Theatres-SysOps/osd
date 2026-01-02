@@ -102,8 +102,8 @@ catch {
 Write-Output '-------------------------------------------------------------'
 
 # Set Windows OEM Activation
-Write-Output 'Setting Windows OEM Activation [Set-WindowsOEMActivation]'
-Set-WindowsOEMActivation
+#Write-Output 'Setting Windows OEM Activation [Set-WindowsOEMActivation]'
+#Set-WindowsOEMActivation
 
 # Restore Power Plan
 Write-Output 'Setting PowerPlan to Balanced'
