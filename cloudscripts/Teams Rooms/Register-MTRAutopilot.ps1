@@ -18,6 +18,9 @@
         MTR-BR-TheArk
         MTR-LA-TheCommission
         MTR-BR-BoardRoom1
+
+.AUTHOR
+    Matthew Miles        
 #>
 
 [CmdletBinding()]
