@@ -9,6 +9,9 @@
 .NOTES
     Requires Teams Rooms Pro license for enhanced backgrounds.
     Update the URLs below with your Azure Blob Storage paths + SAS tokens.
+
+.AUTHOR
+    Matthew Miles
 #>
 
 #Requires -RunAsAdministrator
