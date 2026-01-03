@@ -186,7 +186,7 @@ Write-Host ""
 # Prompt for Group (with default)
 # ============================================================================
 $defaultGroup = "AutoPilot_Devices-TeamsRooms"
-$Group = Read-Host "Enter Entra Group Name [$defaultGroup]"
+$Group = Read-Host "Enter Entra Group Name [$defaultGroup] (press Enter to use default)"
 if ([string]::IsNullOrWhiteSpace($Group)) {
     $Group = $defaultGroup
 }
