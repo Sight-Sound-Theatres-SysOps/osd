@@ -61,9 +61,9 @@ function Download-Image {
 }
 
 # Main execution
-Write-Status "=" * 50
+Write-Status ("=" * 50)
 Write-Status "Teams Room Custom Background Deployment"
-Write-Status "=" * 50
+Write-Status ("=" * 50)
 
 # Ask about dual screen configuration
 $dualScreenResponse = Read-Host "Does this room have dual front-of-room displays? (Y/N)"
@@ -129,13 +129,13 @@ catch {
 }
 
 # Display summary
-Write-Status "-" * 50
+Write-Status ("-" * 50)
 Write-Status "Deployment Complete!" -Type Success
 Write-Status "Files deployed to: $MTRPath"
 Write-Status ""
 Write-Status "XML Configuration:"
 $xmlContent -split "`n" | ForEach-Object { Write-Status "  $_" }
-Write-Status "-" * 50
+Write-Status ("-" * 50)
 Write-Status "RESTART REQUIRED to apply changes" -Type Warning
 
 # Handle restart
