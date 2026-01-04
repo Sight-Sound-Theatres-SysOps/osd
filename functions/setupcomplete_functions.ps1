@@ -290,31 +290,56 @@ Function Start-WindowsUpdateDriver {
 function Update-DefenderStack {
     [CmdletBinding()]
     param ()
-#    if (Test-WebConnection -Uri "google.com") {
+
     if (Test-WindowsUpdateEnvironment) {
+        # Detect system architecture
+        # 0 = x86, 5 = ARM, 6 = IA64, 9 = x64, 12 = ARM64
+        $processorArch = (Get-CimInstance -ClassName Win32_Processor).Architecture
+        
+        if ($processorArch -eq 9) {
+            $arch = "x64"
+            $archDisplay = "x64"
+        }
+        elseif ($processorArch -eq 12) {
+            $arch = "arm64"
+            $archDisplay = "ARM64"
+        }
+        else {
+            Write-Output "Unsupported processor architecture: $processorArch. Supported: x64 (9), ARM64 (12)"
+            return
+        }
+        
         # Source Addresses - Defender for Windows 10, 8.1 ################################
-        $sourceAVx64 = "http://go.microsoft.com/fwlink/?LinkID=121721&arch=x64"
-        $sourcePlatformx64 = "https://go.microsoft.com/fwlink/?LinkID=870379&clcid=0x409&arch=x64"
-        Write-Output "UPDATE Defender Package Script version $ScriptVer..."
+        $sourceAVx64 = "http://go.microsoft.com/fwlink/?LinkID=121721&arch=$arch"
+        $sourcePlatformx64 = "https://go.microsoft.com/fwlink/?LinkID=870379&clcid=0x409&arch=$arch"
+        Write-Output "UPDATE Defender Package Script version $ScriptVer for $archDisplay..."
         $Intermediate = "$env:TEMP\DefenderScratchSpace"
     
         if (!(Test-Path -Path "$Intermediate")) {
             $Null = New-Item -Path "$env:TEMP" -Name "DefenderScratchSpace" -ItemType Directory
         }
     
-        if (!(Test-Path -Path "$Intermediate\x64")) {
-            $Null = New-Item -Path "$Intermediate" -Name "x64" -ItemType Directory
+        if (!(Test-Path -Path "$Intermediate\$arch")) {
+            $Null = New-Item -Path "$Intermediate" -Name "$arch" -ItemType Directory
         }
 
-        Remove-Item -Path "$Intermediate\x64\*" -Force -EA SilentlyContinue
+        Remove-Item -Path "$Intermediate\$arch\*" -Force -EA SilentlyContinue
         $wc = New-Object System.Net.WebClient
     
-        # x64 AV #########################################################################
+        # Download and Install MPAM-FE (Antivirus Signatures) #############################
     
-        $Dest = "$Intermediate\x64\" + 'mpam-fe.exe'
-        Write-Output "Starting MPAM-FE Download"
-        $wc.DownloadFile($sourceAVx64, $Dest)
-        if (Test-Path -Path $Dest) {
+        $Dest = "$Intermediate\$arch\mpam-fe.exe"
+        Write-Output "Starting MPAM-FE Download for $archDisplay"
+        
+        try {
+            $wc.DownloadFile($sourceAVx64, $Dest)
+        }
+        catch {
+            Write-Output "Failed MPAM-FE Download: $($_.Exception.Message)"
+            $Dest = $null
+        }
+        
+        if ($Dest -and (Test-Path -Path $Dest)) {
             $x = Get-Item -Path $Dest
             [version]$Version1a = $x.VersionInfo.ProductVersion #Downloaded
             [version]$Version1b = (Get-MpComputerStatus).AntivirusSignatureVersion #Currently Installed
@@ -331,12 +356,19 @@ function Update-DefenderStack {
             Write-Output "Failed MPAM-FE Download"
         }
     
-        # x64 Update Platform ########################################################################
-        Write-Output "Starting Update Platform Download"
-        $Dest = "$Intermediate\x64\" + 'UpdatePlatform.exe'
-        $wc.DownloadFile($sourcePlatformx64, $Dest)
+        # Download and Install Update Platform (AM Service) ##############################
+        Write-Output "Starting Update Platform Download for $archDisplay"
+        $Dest = "$Intermediate\$arch\UpdatePlatform.exe"
+        
+        try {
+            $wc.DownloadFile($sourcePlatformx64, $Dest)
+        }
+        catch {
+            Write-Output "Failed Update Platform Download: $($_.Exception.Message)"
+            $Dest = $null
+        }
     
-        if (Test-Path -Path $Dest) {
+        if ($Dest -and (Test-Path -Path $Dest)) {
             $x = Get-Item -Path $Dest
             [version]$Version2a = $x.VersionInfo.ProductVersion #Downloaded
             [version]$Version2b = (Get-MpComputerStatus).AMServiceVersion #Installed
@@ -353,6 +385,7 @@ function Update-DefenderStack {
         else {
             Write-Output "Failed Update Platform Download"
         }
+        
         New-Alias -Name 'UpdateDefenderStack' -Value 'osdcloud-UpdateDefenderStack' -Description 'OSDCloud' -Force
     }
     else {
