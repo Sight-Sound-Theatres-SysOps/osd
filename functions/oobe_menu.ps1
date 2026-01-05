@@ -102,7 +102,6 @@ function step-oobemenu {
                 <ComboBox Name="cmbGroupTag" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
                     <ComboBoxItem Content="Entreprise" />
                     <ComboBoxItem Content="Development" />
-                    <ComboBoxItem Content="MTR-" />
                 </ComboBox>
                 <TextBlock Text="Group:" Foreground="White"/>
                 <ComboBox Name="cmbGroup" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30">
@@ -111,7 +110,6 @@ function step-oobemenu {
                     <ComboBoxItem Content="AutoPilot_Devices-Retail" />
                     <ComboBoxItem Content="Autopilot_Devices-CenterStageKiosk" />
                     <ComboBoxItem Content="Autopilot_Devices-SharedDevice" />
-                    <ComboBoxItem Content="AutoPilot_Devices-TeamsRooms" />
                 </ComboBox>
                 <TextBlock Text="Computer Name:" Foreground="White"/>
                 <TextBox Name="txtComputerName" VerticalContentAlignment="Center" Margin="0,0,0,12" Height="30" />
