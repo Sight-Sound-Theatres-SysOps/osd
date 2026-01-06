@@ -4,20 +4,30 @@
     Registers a Teams Room device with Windows Autopilot using encrypted app credentials.
 
 .DESCRIPTION
-    This script prompts for device details, decrypts stored Azure AD app credentials,
-    and registers the device with Windows Autopilot for Teams Rooms deployment.
+    This script prompts for device location (Lancaster/Branson), computer number, and room name,
+    then automatically constructs the computer name and group tag before registering the device 
+    with Windows Autopilot for Teams Rooms deployment.
 
 .NOTES
     Author: Matthew Miles
     Use Case: Teams Rooms on Windows - Autopilot Registration
+    
+    Computer Name Format:
+        Branson:   BRMTR-<number>
+        Lancaster: LAMTR-<number>
+    
+    Group Tag Format:
+        Branson:   MTR-BR-<RoomName>
+        Lancaster: MTR-LA-<RoomName>
+        Example: MTR-BR-TheCornerstone, MTR-LA-Zion
 
 .EXAMPLE
     .\Register-MTRAutopilot.ps1
     
-    GroupTag Examples:
-        MTR-BR-TheArk
-        MTR-LA-TheCommission
-        MTR-BR-BoardRoom1
+    Prompted inputs:
+        1. Location: Lancaster or Branson
+        2. Computer number: e.g., "01", "02"
+        3. Room name: e.g., "The Vine", "The Cornerstone", "Zion"
 
 .AUTHOR
     Matthew Miles        
@@ -178,35 +188,101 @@ Write-Host "============================================================" -Foreg
 Write-Host "       Teams Rooms - Windows Autopilot Registration         " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  GroupTag Examples: MTR-BR-TheArk, MTR-LA-TheCommission" -ForegroundColor DarkGray
-Write-Host "  Computer Name: Max 15 chars, letters/numbers/hyphens only" -ForegroundColor DarkGray
+Write-Host "  Location: Lancaster or Branson" -ForegroundColor DarkGray
+Write-Host "  Computer Name Examples: LAMTR-01, BRMTR-02" -ForegroundColor DarkGray
+Write-Host "  Group Tag Examples: MTR-LA-Zion, MTR-BR-TheCornerstone" -ForegroundColor DarkGray
 Write-Host ""
 
 # ============================================================================
-# Prompt for Group (with default)
+# Set Group (no prompt - always use this group)
 # ============================================================================
-$defaultGroup = "AutoPilot_Devices-TeamsRooms"
-$Group = Read-Host "Enter Entra Group Name [$defaultGroup] (press Enter to use default)"
-if ([string]::IsNullOrWhiteSpace($Group)) {
-    $Group = $defaultGroup
-}
+$Group = "AutoPilot_Devices-TeamsRooms"
 
 # ============================================================================
-# Prompt for GroupTag (prefix with MTR-, validate)
+# Prompt for Location (Lancaster or Branson)
 # ============================================================================
-$tagValid = $false
-while (-not $tagValid) {
+$locationValid = $false
+while (-not $locationValid) {
     Write-Host ""
-    Write-Host "  Examples: BR-TheArk, LA-TheCommission, BR-BoardRoom1" -ForegroundColor DarkGray
-    $tagInput = Read-Host "Enter Room Identifier (will be prefixed with MTR-)"
+    Write-Host "  Select Location:" -ForegroundColor Cyan
+    Write-Host "  1) Lancaster" -ForegroundColor White
+    Write-Host "  2) Branson" -ForegroundColor White
+    $locationChoice = Read-Host "Enter location choice (1 or 2)"
     
-    if ([string]::IsNullOrWhiteSpace($tagInput)) {
-        Write-Host -ForegroundColor Red "[!] Room identifier is required."
+    if ($locationChoice -eq "1") {
+        $Location = "Lancaster"
+        $LocationPrefix = "LA"
+        $ComputerPrefix = "LAMTR-"
+        $locationValid = $true
+    }
+    elseif ($locationChoice -eq "2") {
+        $Location = "Branson"
+        $LocationPrefix = "BR"
+        $ComputerPrefix = "BRMTR-"
+        $locationValid = $true
+    }
+    else {
+        Write-Host -ForegroundColor Red "[!] Invalid choice. Please enter 1 or 2."
+    }
+}
+
+Write-Host -ForegroundColor Green "[+] Location: $Location"
+
+# ============================================================================
+# Prompt for Computer Number
+# ============================================================================
+$computerNumberValid = $false
+while (-not $computerNumberValid) {
+    Write-Host ""
+    $computerNumber = Read-Host "Enter computer number"
+    
+    if ([string]::IsNullOrWhiteSpace($computerNumber)) {
+        Write-Host -ForegroundColor Red "[!] Computer number is required."
         continue
     }
     
+    # Build full computer name
+    $ComputerName = "$($ComputerPrefix)$($computerNumber)".ToUpper()
+    
+    # Validate
+    $nameErrors = Test-ComputerName -Name $ComputerName
+    
+    if ($nameErrors.Count -gt 0) {
+        Write-Host -ForegroundColor Red "[!] Computer name validation failed:"
+        foreach ($err in $nameErrors) {
+            Write-Host -ForegroundColor Red "    - $err"
+        }
+    }
+    else {
+        $computerNumberValid = $true
+        Write-Host -ForegroundColor Green "[+] Computer name: $ComputerName ($($ComputerName.Length)/15 characters)"
+    }
+}
+
+# ============================================================================
+# Prompt for Room Name
+# ============================================================================
+$roomNameValid = $false
+while (-not $roomNameValid) {
+    Write-Host ""
+    Write-Host "  Examples: The Vine, The Cornerstone, Zion" -ForegroundColor DarkGray
+    $roomName = Read-Host "Enter room name"
+    
+    if ([string]::IsNullOrWhiteSpace($roomName)) {
+        Write-Host -ForegroundColor Red "[!] Room name is required."
+        continue
+    }
+    
+    # Format room name: remove spaces, capitalize first letter of each word
+    $formattedRoomName = ($roomName -split ' ' | ForEach-Object { 
+        if ($_ -ne '') {
+            $_ = $_[0].ToString().ToUpper() + $_.Substring(1).ToLower()
+        }
+        $_
+    }) -join ''
+    
     # Build full tag
-    $GroupTag = "MTR-$tagInput"
+    $GroupTag = "MTR-$LocationPrefix-$formattedRoomName"
     
     # Validate
     $tagErrors = Test-GroupTag -Tag $GroupTag
@@ -219,40 +295,9 @@ while (-not $tagValid) {
         Write-Host -ForegroundColor Yellow "    Resulting tag would be: $GroupTag"
     }
     else {
-        $tagValid = $true
-        Write-Host -ForegroundColor Green "[+] Group tag valid: $GroupTag"
-    }
-}
-
-# ============================================================================
-# Prompt for Computer Name (force uppercase, validate)
-# ============================================================================
-$nameValid = $false
-while (-not $nameValid) {
-    Write-Host ""
-    Write-Host "  Max 15 characters. Letters, numbers, hyphens only." -ForegroundColor DarkGray
-    $computerInput = Read-Host "Enter Computer Name"
-    
-    if ([string]::IsNullOrWhiteSpace($computerInput)) {
-        Write-Host -ForegroundColor Red "[!] Computer name is required."
-        continue
-    }
-    
-    # Force uppercase
-    $ComputerName = $computerInput.ToUpper()
-    
-    # Validate
-    $nameErrors = Test-ComputerName -Name $ComputerName
-    
-    if ($nameErrors.Count -gt 0) {
-        Write-Host -ForegroundColor Red "[!] Computer name validation failed:"
-        foreach ($err in $nameErrors) {
-            Write-Host -ForegroundColor Red "    - $err"
-        }
-    }
-    else {
-        $nameValid = $true
-        Write-Host -ForegroundColor Green "[+] Computer name valid: $ComputerName ($($ComputerName.Length)/15 characters)"
+        $roomNameValid = $true
+        Write-Host -ForegroundColor Green "[+] Room name: $roomName"
+        Write-Host -ForegroundColor Green "[+] Group tag: $GroupTag"
     }
 }
 
