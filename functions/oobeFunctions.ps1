@@ -366,13 +366,13 @@ function Step-TrustPSGallery {
     param ()
     
     $PowerShellGallery = Get-PSRepository -Name PSGallery -ErrorAction Ignore
-    if ($PowerShellGallery.InstallatCyan "[→] Set-PSRepository PSGallery Trusted"
-        Set-PSRepository -Name PSGalionPolicy -ne 'Trusted') {
+    if ($PowerShellGallery.InstallationPolicy -ne 'Trusted') {
         Write-Host -ForegroundColor Cyan "[→] Set-PSRepository PSGallery Trusted"
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
     }
     if ($PowerShellGallery.InstallationPolicy -eq 'Trusted') {
-        Write-Host -ForegroundColor DarkGray "[✓
+        Write-Host -ForegroundColor DarkGray "[✓] PSRepository PSGallery Trusted"
+    }
 }
 function Step-InstallPowerShellModule {
     [CmdletBinding()]
