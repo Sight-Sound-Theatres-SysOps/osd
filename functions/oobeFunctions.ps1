@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobeFunctions.sight-sound.dev'
-$ScriptVersion = '26.1.17.4'
+$ScriptVersion = '26.1.17.5'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -15,7 +15,7 @@ else {
     else {$WindowsPhase = 'Windows'}
 }
 
-Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
+Write-Host -ForegroundColor DarkGray "[✓] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 #endregion
 
 $Global:oobeCloud = @{
@@ -63,7 +63,7 @@ $Global:oobeCloud = @{
 function Step-PendingReboot {
     # Checks common locations for pending reboot
     function Test-PendingReboot {
-        Write-Host -ForegroundColor Yellow "[-] Checking for Windows Update pending reboot..."
+        Write-Host -ForegroundColor Cyan "[→] Checking for Windows Update pending reboot..."
         $rebootPending = $false
         # Check for CBS Reboot Pending
         $cbs = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
@@ -131,7 +131,7 @@ function Step-installCertificates {
 
     # Ensure the directory exists
     if (-not (Test-Path -Path $certDirectory)) {
-        Write-Host -ForegroundColor Yellow "[-] Directory $certDirectory does not exist. Creating it..."
+        Write-Host -ForegroundColor Cyan "[→] Directory $certDirectory does not exist. Creating it..."
         New-Item -Path $certDirectory -ItemType Directory | Out-Null
     }
 
@@ -143,10 +143,10 @@ function Step-installCertificates {
                       Where-Object { $_.Issuer -like $cert.IssuerMatch }
 
         if ($certExists) {
-            Write-Host -ForegroundColor Green "[+] $($cert.Name) root certificate is already installed"
+            Write-Host -ForegroundColor DarkGray "[✓] $($cert.Name) root certificate is already installed"
         }
         else {
-            Write-Host -ForegroundColor Yellow "[-] Installing $($cert.Name) root certificate"
+            Write-Host -ForegroundColor Cyan "[→] Installing $($cert.Name) root certificate"
 
             # Define the full file path for the downloaded certificate
             $certFile = Join-Path -Path $certDirectory -ChildPath $cert.FileName
@@ -173,11 +173,11 @@ function Step-setTimeZoneFromIP {
     [CmdletBinding()]
     param ()
 
-    Write-Host -ForegroundColor Yellow "[-] Attempting to set time zone based on IP address"
+    Write-Host -ForegroundColor Cyan "[→] Attempting to set time zone based on IP address"
 
     # Try to synchronize system time before making the API call
     try {
-        Write-Host -ForegroundColor Yellow "[-] Synchronizing system time with time server"
+        Write-Host -ForegroundColor Cyan "[→] Synchronizing system time with time server"
         w32tm /resync | Out-Null
         Start-Sleep -Seconds 2
     }
@@ -189,7 +189,7 @@ function Step-setTimeZoneFromIP {
     $URIRequest = "https://ipapi.co/json/"
     $TimeZoneAPI = $null
     try {
-        Write-Host -ForegroundColor Yellow "[-] Fetching time zone from ipapi.co"
+        Write-Host -ForegroundColor Cyan "[→] Fetching time zone from ipapi.co"
         $Response = Invoke-WebRequest -Uri $URIRequest -UseBasicParsing -ErrorAction Stop
         $TimeZoneAPI = ($Response.Content | ConvertFrom-Json).timezone
     }
@@ -199,7 +199,7 @@ function Step-setTimeZoneFromIP {
 
     # Method 2: Fallback to Windows Location Services if API fails
     if (-not $TimeZoneAPI) {
-        Write-Host -ForegroundColor Yellow "[-] API failed, attempting to use Windows Location Services for time zone detection"
+        Write-Host -ForegroundColor Yellow "[!] API failed, attempting to use Windows Location Services for time zone detection"
         try {
             # Ensure location services are enabled
             Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" -Name "Value" -Value "Allow" -ErrorAction Stop
@@ -211,14 +211,14 @@ function Step-setTimeZoneFromIP {
 
             # Get the current time zone
             $CurrentTimeZone = (Get-TimeZone).Id
-            Write-Host -ForegroundColor Green "[+] Time zone detected via Windows Location Services: $CurrentTimeZone"
+            Write-Host -ForegroundColor DarkGray "[✓] Time zone detected via Windows Location Services: $CurrentTimeZone"
             return  # Exit the function since we've set the time zone
         }
         catch {
             Write-Warning "Failed to use Windows Location Services for time zone detection. Error: $($_.Exception.Message)"
-            Write-Host -ForegroundColor Yellow "[-] Using default time zone as fallback"
+            Write-Host -ForegroundColor Yellow "[!] Using default time zone as fallback"
             Set-TimeZone -Id "Eastern Standard Time"
-            Write-Host -ForegroundColor Green "[+] Time zone set to Eastern Standard Time as fallback"
+            Write-Host -ForegroundColor DarkGray "[✓] Time zone set to Eastern Standard Time as fallback"
             return
         }
     }
@@ -274,19 +274,19 @@ function Step-setTimeZoneFromIP {
         $WindowsTimeZone = $WindowsTimeZones[$TimeZoneAPI]
         try {
             Set-TimeZone -Id $WindowsTimeZone -ErrorAction Stop
-            Write-Host -ForegroundColor Green "[+] Time zone has been updated to - $WindowsTimeZone"
+            Write-Host -ForegroundColor DarkGray "[✓] Time zone has been updated to - $WindowsTimeZone"
         }
         catch {
             Write-Warning "Failed to set time zone to $WindowsTimeZone. Error: $($_.Exception.Message)"
-            Write-Host -ForegroundColor Yellow "[-] Using default time zone as fallback"
+            Write-Host -ForegroundColor Yellow "[!] Using default time zone as fallback"
             Set-TimeZone -Id "Eastern Standard Time"
-            Write-Host -ForegroundColor Green "[+] Time zone set to Eastern Standard Time as fallback"
+            Write-Host -ForegroundColor DarkGray "[✓] Time zone set to Eastern Standard Time as fallback"
         }
     }
     else {
         Write-Warning "Time zone '$TimeZoneAPI' not found in the mapping. Using default time zone."
         Set-TimeZone -Id "Eastern Standard Time"
-        Write-Host -ForegroundColor Green "[+] Time zone set to Eastern Standard Time as fallback"
+        Write-Host -ForegroundColor DarkGray "[✓] Time zone set to Eastern Standard Time as fallback"
     }
 }
 function Step-SetExecutionPolicy {
@@ -294,11 +294,11 @@ function Step-SetExecutionPolicy {
     param ()
     
     if ((Get-ExecutionPolicy -Scope CurrentUser) -ne 'RemoteSigned') {
-        Write-Host -ForegroundColor Yellow "[-] Set-ExecutionPolicy -Scope CurrentUser RemoteSigned"
+        Write-Host -ForegroundColor Cyan "[→] Set-ExecutionPolicy -Scope CurrentUser RemoteSigned"
         Set-ExecutionPolicy RemoteSigned -Force -Scope CurrentUser
     }
     else {
-        Write-Host -ForegroundColor Green "[+] Get-ExecutionPolicy RemoteSigned [CurrentUser]"
+        Write-Host -ForegroundColor DarkGray "[✓] Get-ExecutionPolicy RemoteSigned [CurrentUser]"
     }
 }
 function Step-SetPowerShellProfile {
@@ -321,7 +321,7 @@ if ($Env:Path -notlike "*$scriptsPath*") {
             Write-Verbose "Creating PowerShell profile at $($Profile.CurrentUserAllHosts)"
             $null = New-Item $Profile.CurrentUserAllHosts -ItemType File -Force -ErrorAction Stop
             $oobePowerShellProfile | Set-Content -Path $Profile.CurrentUserAllHosts -Force -Encoding UTF8 -ErrorAction Stop
-            Write-Host -ForegroundColor Green "[+] Created PowerShell Profile [CurrentUserAllHosts]"
+            Write-Host -ForegroundColor DarkGray "[✓] Created PowerShell Profile [CurrentUserAllHosts]"
         } else {
             Write-Verbose "Profile already exists at $($Profile.CurrentUserAllHosts)"
         }
@@ -335,7 +335,7 @@ function Step-InstallPackageManagement {
     
     $InstalledModule = Get-PackageProvider -Name PowerShellGet | Where-Object {$_.Version -ge '2.2.5'} | Sort-Object Version -Descending | Select-Object -First 1
     if (-not ($InstalledModule)) {
-        Write-Host -ForegroundColor Yellow "[-] Install-PackageProvider PowerShellGet -MinimumVersion 2.2.5"
+        Write-Host -ForegroundColor Cyan "[→] Install-PackageProvider PowerShellGet -MinimumVersion 2.2.5"
         Install-PackageProvider -Name PowerShellGet -MinimumVersion 2.2.5 -Force -Scope AllUsers | Out-Null
         Import-Module PowerShellGet -Force -Scope Global -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 5
@@ -343,7 +343,7 @@ function Step-InstallPackageManagement {
 
     $InstalledModule = Get-Module -Name PackageManagement -ListAvailable | Where-Object {$_.Version -ge '1.4.8.1'} | Sort-Object Version -Descending | Select-Object -First 1
     if (-not ($InstalledModule)) {
-        Write-Host -ForegroundColor Yellow "[-] Install-Module PackageManagement -MinimumVersion 1.4.8.1"
+        Write-Host -ForegroundColor Cyan "[→] Install-Module PackageManagement -MinimumVersion 1.4.8.1"
         Install-Module -Name PackageManagement -MinimumVersion 1.4.8.1 -Force -Confirm:$false -Source PSGallery -Scope AllUsers
         Import-Module PackageManagement -Force -Scope Global -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 5
@@ -352,12 +352,12 @@ function Step-InstallPackageManagement {
     Import-Module PackageManagement -Force -Scope Global -ErrorAction SilentlyContinue
     $InstalledModule = Get-Module -Name PackageManagement -ListAvailable | Where-Object {$_.Version -ge '1.4.8.1'} | Sort-Object Version -Descending | Select-Object -First 1
     if ($InstalledModule) {
-        Write-Host -ForegroundColor Green "[+] PackageManagement $([string]$InstalledModule.Version)"
+        Write-Host -ForegroundColor DarkGray "[✓] PackageManagement $([string]$InstalledModule.Version)"
     }
     Import-Module PowerShellGet -Force -Scope Global -ErrorAction SilentlyContinue
     $InstalledModule = Get-PackageProvider -Name PowerShellGet | Where-Object {$_.Version -ge '2.2.5'} | Sort-Object Version -Descending | Select-Object -First 1
     if ($InstalledModule) {
-        Write-Host -ForegroundColor Green "[+] PowerShellGet $([string]$InstalledModule.Version)"
+        Write-Host -ForegroundColor DarkGray "[✓] PowerShellGet $([string]$InstalledModule.Version)"
     }
 }
 function Step-TrustPSGallery {
@@ -366,11 +366,11 @@ function Step-TrustPSGallery {
     
     $PowerShellGallery = Get-PSRepository -Name PSGallery -ErrorAction Ignore
     if ($PowerShellGallery.InstallationPolicy -ne 'Trusted') {
-        Write-Host -ForegroundColor Yellow "[-] Set-PSRepository PSGallery Trusted"
+        Write-Host -ForegroundColor Cyan "[→] Set-PSRepository PSGallery Trusted"
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
     }
     if ($PowerShellGallery.InstallationPolicy -eq 'Trusted') {
-        Write-Host -ForegroundColor Green "[+] PSRepository PSGallery Trusted"
+        Write-Host -ForegroundColor DarkGray "[✓] PSRepository PSGallery Trusted"
     }
 }
 function Step-InstallPowerShellModule {
@@ -405,23 +405,23 @@ function Step-InstallPowerShellModule {
 
     if ($InstallModule) {
         if ($WindowsPhase -eq 'WinPE') {
-            Write-Host -ForegroundColor Yellow "[-] $Name $($GalleryPSModule.Version) [AllUsers]"
+            Write-Host -ForegroundColor Cyan "[→] $Name $($GalleryPSModule.Version) [AllUsers]"
             Install-Module $Name -Scope AllUsers -Force -SkipPublisherCheck -AllowClobber
         }
         elseif ($WindowsPhase -eq 'OOBE') {
-            Write-Host -ForegroundColor Yellow "[-] $Name $($GalleryPSModule.Version) [AllUsers]"
+            Write-Host -ForegroundColor Cyan "[→] $Name $($GalleryPSModule.Version) [AllUsers]"
             Install-Module $Name -Scope AllUsers -Force -SkipPublisherCheck -AllowClobber
         }
         else {
             # Install the PowerShell Module in the OS
-            Write-Host -ForegroundColor Yellow "[-] $Name $($GalleryPSModule.Version) [CurrentUser]"
+            Write-Host -ForegroundColor Cyan "[→] $Name $($GalleryPSModule.Version) [CurrentUser]"
             Install-Module $Name -Scope CurrentUser -Force -SkipPublisherCheck -AllowClobber
         }
     }
     else {
         # The module is already installed and up to date
         Import-Module -Name $Name -Force
-        Write-Host -ForegroundColor Green "[+] $Name $($InstalledModule.Version)"
+        Write-Host -ForegroundColor DarkGray "[✓] $Name $($InstalledModule.Version)"
     }
 }
 function Step-desktopWallpaper {
@@ -433,14 +433,14 @@ function Step-desktopWallpaper {
 
     # Check if the directory exists, if not, create it
     if (-Not (Test-Path -Path $scriptDirectory)) {
-        Write-Host -ForegroundColor Yellow "[-] Directory $scriptDirectory does not exist. Creating it..."
+        Write-Host -ForegroundColor Cyan "[→] Directory $scriptDirectory does not exist. Creating it..."
         New-Item -Path $scriptDirectory -ItemType Directory | Out-Null
     }
 
     if (Test-Path $scriptPath) {
-        Write-Host -ForegroundColor Green "[+] Replacing default wallpaper and lockscreen images"
+        Write-Host -ForegroundColor Cyan "[→] Replacing default wallpaper and lockscreen images"
     } else {
-        Write-Host -ForegroundColor Yellow "[-] Replacing default wallpaper and lockscreen images"
+        Write-Host -ForegroundColor Cyan "[→] Replacing default wallpaper and lockscreen images"
         # Download the script
         Invoke-WebRequest -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/set-lockScreen_Wallpaper.ps1 -OutFile $scriptPath
         # Execute the script
@@ -448,7 +448,7 @@ function Step-desktopWallpaper {
     }
 }
 function Step-oobeRemoveAppxPackageAllUsers {
-    Write-Host -ForegroundColor Yellow "[-] Removing Appx Packages"
+    Write-Host -ForegroundColor Cyan "[→] Removing Appx Packages"
     foreach ($Item in $Global:oobeCloud.oobeRemoveAppxPackageName) {
         if (Get-Command Get-AppxProvisionedPackage) {
             Get-AppxProvisionedPackage -Online | Where-Object {$_.DisplayName -Match $Item} | ForEach-Object {
@@ -470,7 +470,7 @@ function Step-oobeSetUserRegSettings {
     param ()
     
     # Load Default User Profile hive (ntuser.dat)
-    Write-host -ForegroundColor Yellow "[-] Setting default users registry settings ..."
+    Write-host -ForegroundColor Cyan "[→] Setting default users registry settings ..."
     $DefaultUserProfilePath = "$env:SystemDrive\Users\Default\NTUSER.DAT"
     REG LOAD "HKU\Default" $DefaultUserProfilePath | Out-Null
 
@@ -492,12 +492,6 @@ function Step-oobeSetUserRegSettings {
 
     Write-host -ForegroundColor DarkGray "[-] Show item checkboxes"
     REG ADD "HKU\Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "AutoCheckSelect" /t REG_DWORD /d 1 /f | Out-Null
-
-    #Write-host -ForegroundColor DarkGray "[-] Disable Chat on Taskbar"
-    #REG ADD "HKU\Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarMn" /t REG_DWORD /d 0 /f | Out-Null  
-    
-    #Write-host -ForegroundColor DarkGray "[-] Disable widgets on Taskbar"
-    #REG ADD "HKU\Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarDa" /t REG_DWORD /d 0 /f | Out-Null   
     
     Write-host -ForegroundColor DarkGray "[-] Disable Windows Spotlight on lockscreen"
     REG ADD "HKU\Default\Software\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsSpotlightFeatures" /t REG_DWORD /d 1 /f | Out-Null
@@ -505,14 +499,14 @@ function Step-oobeSetUserRegSettings {
     Write-host -ForegroundColor DarkGray "[-] Stop Start menu from opening on first logon"
     REG ADD "HKU\Default\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "StartShownOnUpgrade" /t REG_DWORD /d 1 /f | Out-Null
 
-    Write-Host -ForegroundColor DarkGreen "[+] Unloading the default user registry hive"
+    Write-Host -ForegroundColor DarkGray "[-] Unloading the default user registry hive"
     REG UNLOAD "HKU\Default" | Out-Null
 }
 function Step-oobeSetDeviceRegSettings {
     [CmdletBinding()]
     param ()
     
-    Write-host -ForegroundColor Yellow "[-] Setting default machine registry settings ..."
+    Write-host -ForegroundColor Cyan "[→] Setting default machine registry settings ..."
 
     Write-host -ForegroundColor DarkGray "[-] Disable IPv6 on all adapters"
 
@@ -564,7 +558,7 @@ function Step-oobeCreateLocalUser {
 
     # Check if the user already exists
     if (-not (Get-LocalUser -Name $Username -ErrorAction SilentlyContinue)) {
-        Write-Host -ForegroundColor Yellow "[-] Creating local user - $Username"
+        Write-Host -ForegroundColor Cyan "[→] Creating local user - $Username"
     
         # Generate a random password of 16 characters
         function Generate-RandomPassword {
@@ -587,12 +581,12 @@ function Step-oobeCreateLocalUser {
         # Create the user
         New-LocalUser @UserParams | Out-Null
     
-        Write-Host -ForegroundColor DarkGray "[+] User '$Username' has been created with password: $Password"
+        Write-Host -ForegroundColor DarkGray "[✓] User '$Username' has been created with password: $Password"
     
         # Add the user to the Administrators group
         Add-LocalGroupMember -Group "Administrators" -Member $Username
     } else {
-        Write-Host -ForegroundColor Green "[+] User '$Username' already exists."
+        Write-Host -ForegroundColor DarkGray "[✓] User '$Username' already exists."
     }
 }
 function Step-oobeRestartComputer {
@@ -600,12 +594,12 @@ function Step-oobeRestartComputer {
     param ()
     
     # Removing downloaded content
-    Write-Host -ForegroundColor Yellow "[!] Cleaning up... Removing temperary directories"
+    Write-Host -ForegroundColor Cyan "[→] Cleaning up... Removing temperary directories"
     if (Test-Path "C:\osdcloud" -PathType Container) { Remove-Item "C:\osdcloud" -Force -Recurse }
     if (Test-Path "C:\Drivers" -PathType Container) { Remove-Item "C:\Drivers" -Force -Recurse }
     if (Test-Path "C:\Dell" -PathType Container) { Remove-Item "C:\Dell" -Force -Recurse }
     #if (Test-Path "C:\Temp" -PathType Container) { Remove-Item "C:\Temp" -Force -Recurse }
-    Write-Host -ForegroundColor Green '[+] Build Complete!'
+    Write-Host -ForegroundColor DarkGray '[✓] Build Complete!'
     Write-Warning 'Device will restart in 30 seconds.  Press Ctrl + C to cancel'
     Stop-Transcript
     Start-Sleep -Seconds 30
