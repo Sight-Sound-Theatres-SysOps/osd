@@ -9,7 +9,6 @@
     - Installs Windows Updates
     - Installs driver updates
     - Installs WinGet package manager
-    - Updates all installed WinGet packages, if WinGet installation is successful
     - Restores power plan settings
     - Logs all activities and reboots the system
 
@@ -126,37 +125,6 @@ try {
 }
 catch {
     Write-Output "WARNING: Failed to install WinGet: $($_.Exception.Message)"
-}
-Write-Output '-------------------------------------------------------------'
-
-# Verify WinGet Installation and Update
-Write-Output "Verifying WinGet Installation | Time: $($(Get-Date).ToString('hh:mm:ss'))"
-try {
-    $wingetVersion = & winget --version 2>&1
-    
-    if ($LASTEXITCODE -eq 0 -and $wingetVersion) {
-        Write-Output "WinGet is installed: $wingetVersion"
-        
-        Write-Output "Running WinGet Update All | Time: $($(Get-Date).ToString('hh:mm:ss'))"
-        $updateOutput = & winget update --all --accept-source-agreements --accept-package-agreements 2>&1
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Output "Successfully updated all WinGet packages | Time: $($(Get-Date).ToString('hh:mm:ss'))"
-            Write-Output "Update Details:"
-            Write-Output $updateOutput
-        }
-        else {
-            Write-Output "WARNING: WinGet update completed with exit code: $LASTEXITCODE"
-            Write-Output "Update Output:"
-            Write-Output $updateOutput
-        }
-    }
-    else {
-        Write-Output "WARNING: WinGet is not installed or version check failed"
-    }
-}
-catch {
-    Write-Output "ERROR: Failed to verify WinGet installation: $($_.Exception.Message)"
 }
 Write-Output '-------------------------------------------------------------'
 
