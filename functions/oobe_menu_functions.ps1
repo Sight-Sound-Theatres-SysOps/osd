@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu_functions.ps1'
-$ScriptVersion = '25.7.18.1'
+$ScriptVersion = '26.1.17.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -15,7 +15,7 @@ else {
     else {$WindowsPhase = 'Windows'}
 }
 
-Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
+Write-Host -ForegroundColor DarkGray "[✓] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 
 ##===============================##
 ##           FUNCTIONS           ## 
@@ -28,27 +28,27 @@ function step-oobeMenu_InstallM365Apps {
     $officeConfigXml = "https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/supportFiles/MicrosoftOffice/configuration.xml"
 
     if (Test-Path $marker) {
-        Write-Host -ForegroundColor Green "[+] Microsoft 365 Apps already installed (marker file present)."
+        Write-Host -ForegroundColor DarkGray "[✓] Microsoft 365 Apps already installed (marker file present)."
         return $true
     }
 
     # Ensure script directory exists
     if (-not (Test-Path $scriptDirectory)) {
-        Write-Host -ForegroundColor Yellow "[-] Creating $scriptDirectory..."
+        Write-Host -ForegroundColor Cyan "[→] Creating $scriptDirectory..."
         New-Item -Path $scriptDirectory -ItemType Directory | Out-Null
     }
 
     # Download the installer script if not present
     if (-not (Test-Path $scriptPath)) {
-        Write-Host -ForegroundColor Yellow "[-] Downloading M365 installer script..."
+        Write-Host -ForegroundColor Cyan "[→] Downloading M365 installer script..."
         Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/InstallM365Apps.ps1" -OutFile $scriptPath
     }
 
-    Write-Host -ForegroundColor Yellow "[-] Installing M365 Applications (see $scriptPath)..."
+    Write-Host -ForegroundColor Cyan "[→] Installing M365 Applications (see $scriptPath)..."
     try {
         & $scriptPath -XMLURL $officeConfigXml -ErrorAction Stop
         if ($?) {
-            Write-Host -ForegroundColor Green "[+] M365 installation script executed."
+            Write-Host -ForegroundColor DarkGray "[✓] M365 installation script executed."
             # Marker for future runs
             New-Item -ItemType File -Path $marker -Force | Out-Null
             return $true
@@ -72,7 +72,7 @@ function step-oobeMenu_RegisterAutopilot {
         [bool]$UseCommunityScript
     )
 
-    Write-Host -ForegroundColor Yellow "[-] Registering with Windows Autopilot"
+    Write-Host -ForegroundColor Cyan "[→] Registering with Windows Autopilot"
 
     # Decrypt credentials
     $jsonContent = Test-AutopilotPassword -Password $EnrollmentPassword
@@ -87,11 +87,11 @@ function step-oobeMenu_RegisterAutopilot {
 
     # Install the appropriate script based on the flag
     if ($UseCommunityScript) {
-        Write-Host -ForegroundColor Yellow "[-] Installing Community Autopilot script..."
+        Write-Host -ForegroundColor Cyan "[→] Installing Community Autopilot script..."
         Install-Script Get-WindowsAutopilotInfoCommunity -Force
         $scriptName = "Get-WindowsAutopilotInfoCommunity.ps1"
     } else {
-        Write-Host -ForegroundColor Yellow "[-] Installing standard Autopilot script..."
+        Write-Host -ForegroundColor Cyan "[→] Installing standard Autopilot script..."
         Install-Script Get-WindowsAutopilotInfo -Force
         $scriptName = "Get-WindowsAutopilotInfo.ps1"
     }
@@ -100,7 +100,7 @@ function step-oobeMenu_RegisterAutopilot {
 
     # Run the appropriate script
     try {
-        Write-Host -ForegroundColor Green "[+] Running $scriptName..."
+        Write-Host -ForegroundColor Cyan "[→] Running $scriptName..."
         Write-Host -ForegroundColor Yellow "[!] Tag: $GroupTag - Computer Name: $ComputerName - Group: $Group"
 
         if ($UseCommunityScript) {
@@ -123,7 +123,7 @@ function step-oobeMenu_RegisterAutopilot {
                 -appsecret $appsecret
         }
         
-        Write-Host -ForegroundColor Green "[+] Autopilot registration completed using $(if ($UseCommunityScript) { 'Community' } else { 'Standard' }) script."
+        Write-Host -ForegroundColor DarkGray "[✓] Autopilot registration completed using $(if ($UseCommunityScript) { 'Community' } else { 'Standard' }) script."
         return $true
     } catch {
         Write-Host -ForegroundColor Red "[!] Error during Autopilot registration: $_"

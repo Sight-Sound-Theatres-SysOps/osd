@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobe_menu.ps1'
-$ScriptVersion = '25.7.18.1'
+$ScriptVersion = '26.1.17.1'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -15,11 +15,11 @@ else {
     else {$WindowsPhase = 'Windows'}
 }
 
-Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
+Write-Host -ForegroundColor DarkGray "[✓] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 
 function step-oobemenu {
 
-    Write-Host -ForegroundColor Green "[+] Loading OOBE configuration menu..."
+    Write-Host -ForegroundColor Cyan "[→] Loading OOBE configuration menu..."
 
     Add-Type -AssemblyName PresentationFramework
     Add-Type -AssemblyName PresentationCore
