@@ -119,8 +119,8 @@ if ($WindowsPhase -eq 'OOBE') {
         while (-not $valid) {
             $result = step-oobemenu
 
-            if (-not $result) {Red "[✗
-                Write-Host -ForegroundColor Yellow "[!] User cancelled OOBE menu. Exiting script."
+            if (-not $result) {
+                Write-Host -ForegroundColor Red "[✗] User cancelled OOBE menu. Exiting script."
                 Stop-Transcript -ErrorAction Ignore
                 exit
         }
