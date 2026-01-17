@@ -106,8 +106,16 @@ try {
     $wingetScript = Invoke-RestMethod -Uri "https://asheroto.com/winget" -ErrorAction Continue
     
     if ($wingetScript) {
+        # Save script to temporary file
+        $tempScript = "$env:TEMP\winget_install_$(Get-Random).ps1"
+        $wingetScript | Out-File -FilePath $tempScript -Force
+        
         # Run in a separate PowerShell process to contain any Exit calls
-        $result = powershell.exe -NoProfile -Command $wingetScript
+        $result = powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempScript
+        
+        # Clean up
+        Remove-Item -Path $tempScript -Force -ErrorAction Ignore
+        
         Write-Output "Successfully installed WinGet | Time: $($(Get-Date).ToString('hh:mm:ss'))"
     }
     else {
