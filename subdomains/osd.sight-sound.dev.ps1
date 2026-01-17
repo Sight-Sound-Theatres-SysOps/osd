@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '25.10.2.3'
+$ScriptVersion = '26.01.16.1'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -48,7 +48,8 @@ else {
     else {$WindowsPhase = 'Windows'}
 }
 
-Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
+Write-Host -ForegroundColor DarkGray "[✓] $ScriptName $ScriptVersion ($WindowsPhase)"
+#Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 #endregion
 
 #region import functions
