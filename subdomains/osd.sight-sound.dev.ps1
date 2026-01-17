@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '26.1.17.3'
+$ScriptVersion = '26.1.17.4'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -62,7 +62,7 @@ Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent
 $whoiam = [system.security.principal.windowsidentity]::getcurrent().name
 $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 if ($isElevated) {
-    Write-Host -ForegroundColor Green "[✓] Running as $whoiam (Admin Elevated)"
+    Write-Host -ForegroundColor Cyan "[✓] Running as $whoiam (Admin Elevated)"
 }
 else {
     Write-Host -ForegroundColor Red "[!] Running as $whoiam (NOT Admin Elevated)"
