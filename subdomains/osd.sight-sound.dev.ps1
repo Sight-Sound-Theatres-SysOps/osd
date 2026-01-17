@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '26.1.17.1'
+$ScriptVersion = '26.1.17.2'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -112,7 +112,6 @@ if ($WindowsPhase -eq 'OOBE') {
     #step-InstallPowerSHellModule -Name Pester
     step-InstallPowerSHellModule -Name PSReadLine   
     step-desktopWallpaper
-    #step-installwinget
 
     # --- Load OOBE Menu ---
         $valid = $false

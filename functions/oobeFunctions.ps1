@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ScriptName = 'oobeFunctions.sight-sound.dev'
-$ScriptVersion = '26.1.17.3'
+$ScriptVersion = '26.1.17.4'
 
 #region Initialize
 if ($env:SystemDrive -eq 'X:') {
@@ -610,19 +610,4 @@ function Step-oobeRestartComputer {
     Stop-Transcript
     Start-Sleep -Seconds 30
     Restart-Computer
-}
-function step-installwinget {
-    [CmdletBinding()]
-    param ()
-    
-    Write-Host -ForegroundColor Yellow "[-] Installing WinGet"
-    try {
-        $wingetScript = Invoke-RestMethod -Uri "https://asheroto.com/winget" -ErrorAction Continue
-        # Execute in a separate scope to contain any exit calls, suppressing all output
-        $result = & ([scriptblock]::Create($wingetScript)) 2>&1 | Out-Null
-        Write-Host -ForegroundColor Green "[+] WinGet installed successfully"
-    }
-    catch {
-        Write-Host -ForegroundColor Red "[!] Failed to install WinGet: $_"
-    }
 }
