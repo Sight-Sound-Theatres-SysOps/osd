@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '26.01.16.1'
+$ScriptVersion = '25.10.2.3'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -48,7 +48,7 @@ else {
     else {$WindowsPhase = 'Windows'}
 }
 
-Write-Host -ForegroundColor DarkGray "[✓] $ScriptName $ScriptVersion ($WindowsPhase)"
+Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 #endregion
 
 #region import functions
@@ -62,18 +62,17 @@ Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent
 $whoiam = [system.security.principal.windowsidentity]::getcurrent().name
 $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 if ($isElevated) {
-    Write-Host -ForegroundColor Green "[✓] Running as $whoiam (Admin Elevated)"
+    Write-Host -ForegroundColor Green "[+] Running as $whoiam (Admin Elevated)"
 }
 else {
-    Write-Host -ForegroundColor Red "[✗] Running as $whoiam (NOT Admin Elevated)"
+    Write-Host -ForegroundColor Red "[!] Running as $whoiam (NOT Admin Elevated)"
     Break
 }
 #endregion
 
 #region Transport Layer Security (TLS) 1.2
-Write-Host -ForegroundColor Cyan "[→] Transport Layer Security (TLS) 1.2"
+Write-Host -ForegroundColor Green "[+] Transport Layer Security (TLS) 1.2"
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-Write-Host -ForegroundColor DarkGray "[✓] TLS 1.2 enabled"
 #endregion
 
 #region WinPE
@@ -120,10 +119,10 @@ if ($WindowsPhase -eq 'OOBE') {
             $result = step-oobemenu
 
             if (-not $result) {
-                Write-Host -ForegroundColor Red "[✗] User cancelled OOBE menu. Exiting script."
+                Write-Host -ForegroundColor Yellow "[!] User cancelled OOBE menu. Exiting script."
                 Stop-Transcript -ErrorAction Ignore
                 exit
-            }
+        }
 
             # --- Force Computer Name Uppercase ---
             if ($result.ComputerName) {
@@ -184,9 +183,8 @@ if ($WindowsPhase -eq 'Windows') {
     #Load OSD and Azure stuff
     $null = Stop-Transcript -ErrorAction Ignore
 
-    Write-Host -ForegroundColor Cyan "[→] Windows Phase - Redirecting to cloud scripts"
+    Write-Host -ForegroundColor Green "[+] Windows Phase - Redirecting to cloud scripts"
     Invoke-Expression (Invoke-RestMethod scripts.sight-sound.dev)
-    Write-Host -ForegroundColor DarkGray "[✓] Cloud scripts executed"
 }
 
 #endregion
