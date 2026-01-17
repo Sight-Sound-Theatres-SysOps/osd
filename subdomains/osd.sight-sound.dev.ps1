@@ -123,7 +123,7 @@ if ($WindowsPhase -eq 'OOBE') {
                 Write-Host -ForegroundColor Red "[✗] User cancelled OOBE menu. Exiting script."
                 Stop-Transcript -ErrorAction Ignore
                 exit
-        }
+            }
 
             # --- Force Computer Name Uppercase ---
             if ($result.ComputerName) {
