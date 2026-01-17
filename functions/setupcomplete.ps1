@@ -8,13 +8,12 @@
     - Updates Windows Defender definitions and platform
     - Installs Windows Updates
     - Installs driver updates
-    - Sets Windows OEM activation
     - Restores power plan settings
     - Logs all activities and reboots the system
 
 .NOTES
     Author: Matthew Miles
-    Last Modified: December 1, 2025
+    Last Modified: January 17, 2026
 #>
 
 Write-Output 'Starting SetupComplete Script Process'
@@ -101,9 +100,25 @@ catch {
 }
 Write-Output '-------------------------------------------------------------'
 
-# Set Windows OEM Activation
-#Write-Output 'Setting Windows OEM Activation [Set-WindowsOEMActivation]'
-#Set-WindowsOEMActivation
+# Install WinGet
+Write-Output "Installing WinGet | Time: $($(Get-Date).ToString('hh:mm:ss'))"
+try {
+    $wingetScript = Invoke-RestMethod -Uri "https://asheroto.com/winget" -ErrorAction Continue
+    
+    if ($wingetScript) {
+        # Run in a separate PowerShell process to contain any Exit calls
+        $result = powershell.exe -NoProfile -Command $wingetScript
+        Write-Output "Successfully installed WinGet | Time: $($(Get-Date).ToString('hh:mm:ss'))"
+    }
+    else {
+        Write-Output "WARNING: Failed to retrieve WinGet installation script - script content was empty"
+    }
+}
+catch {
+    Write-Output "WARNING: Failed to install WinGet: $($_.Exception.Message)"
+}
+Write-Output '-------------------------------------------------------------'
+
 
 # Restore Power Plan
 Write-Output 'Setting PowerPlan to Balanced'
