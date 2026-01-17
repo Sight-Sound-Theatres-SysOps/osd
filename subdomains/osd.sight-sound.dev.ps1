@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '26.1.17.2'
+$ScriptVersion = '26.1.17.3'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -48,7 +48,7 @@ else {
     else {$WindowsPhase = 'Windows'}
 }
 
-Write-Host -ForegroundColor Green "[+] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
+Write-Host -ForegroundColor Cyan "[✓] $ScriptName $ScriptVersion ($WindowsPhase Phase)"
 #endregion
 
 #region import functions
@@ -62,7 +62,7 @@ Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent
 $whoiam = [system.security.principal.windowsidentity]::getcurrent().name
 $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 if ($isElevated) {
-    Write-Host -ForegroundColor Green "[+] Running as $whoiam (Admin Elevated)"
+    Write-Host -ForegroundColor Green "[✓] Running as $whoiam (Admin Elevated)"
 }
 else {
     Write-Host -ForegroundColor Red "[!] Running as $whoiam (NOT Admin Elevated)"
@@ -71,7 +71,7 @@ else {
 #endregion
 
 #region Transport Layer Security (TLS) 1.2
-Write-Host -ForegroundColor Green "[+] Transport Layer Security (TLS) 1.2"
+Write-Host -ForegroundColor Cyan "[✓] Transport Layer Security (TLS) 1.2"
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 #endregion
 
@@ -119,7 +119,7 @@ if ($WindowsPhase -eq 'OOBE') {
             $result = step-oobemenu
 
             if (-not $result) {
-                Write-Host -ForegroundColor Yellow "[!] User cancelled OOBE menu. Exiting script."
+                Write-Host -ForegroundColor Red "[!] User cancelled OOBE menu. Exiting script."
                 Stop-Transcript -ErrorAction Ignore
                 exit
         }
@@ -183,7 +183,7 @@ if ($WindowsPhase -eq 'Windows') {
     #Load OSD and Azure stuff
     $null = Stop-Transcript -ErrorAction Ignore
 
-    Write-Host -ForegroundColor Green "[+] Windows Phase - Redirecting to cloud scripts"
+    Write-Host -ForegroundColor Cyan "[✓] Windows Phase - Redirecting to cloud scripts"
     Invoke-Expression (Invoke-RestMethod scripts.sight-sound.dev)
 }
 
