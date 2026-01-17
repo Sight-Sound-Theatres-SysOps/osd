@@ -321,8 +321,8 @@ if ($Env:Path -notlike "*$scriptsPath*") {
         if (-not (Test-Path $Profile.CurrentUserAllHosts)) {
             Write-Verbose "Creating PowerShell profile at $($Profile.CurrentUserAllHosts)"
             $null = New-Item $Profile.CurrentUserAllHosts -ItemType File -Force -ErrorAction Stop
-            $oobePowerShellProfile | SetDarkGray "[✓-Path $Profile.CurrentUserAllHosts -Force -Encoding UTF8 -ErrorAction Stop
-            Write-Host -ForegroundColor Green "[+] Created PowerShell Profile [CurrentUserAllHosts]"
+            $oobePowerShellProfile | Set-Content -Path $Profile.CurrentUserAllHosts -Force -Encoding UTF8 -ErrorAction Stop
+            Write-Host -ForegroundColor DarkGray "[✓] Created PowerShell Profile [CurrentUserAllHosts]"
         } else {
             Write-Verbose "Profile already exists at $($Profile.CurrentUserAllHosts)"
         }
@@ -335,7 +335,8 @@ function Step-InstallPackageManagement {
     param ()
     
     $InstalledModule = Get-PackageProvider -Name PowerShellGet | Where-Object {$_.Version -ge '2.2.5'} | Sort-Object Version -Descending | Select-Object -First 1
-    if (-not ($InstalledModule)) {Cyan "[→] Install-PackageProvider PowerShellGet -MinimumVersion 2.2.5"
+    if (-not ($InstalledModule)) {
+        Write-Host -ForegroundColor Cyan "[→] Install-PackageProvider PowerShellGet -MinimumVersion 2.2.5"
         Install-PackageProvider -Name PowerShellGet -MinimumVersion 2.2.5 -Force -Scope AllUsers | Out-Null
         Import-Module PowerShellGet -Force -Scope Global -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 5
@@ -343,7 +344,6 @@ function Step-InstallPackageManagement {
 
     $InstalledModule = Get-Module -Name PackageManagement -ListAvailable | Where-Object {$_.Version -ge '1.4.8.1'} | Sort-Object Version -Descending | Select-Object -First 1
     if (-not ($InstalledModule)) {
-        Write-Host -ForegroundColor Cyan "[→
         Write-Host -ForegroundColor Yellow "[-] Install-Module PackageManagement -MinimumVersion 1.4.8.1"
         Install-Module -Name PackageManagement -MinimumVersion 1.4.8.1 -Force -Confirm:$false -Source PSGallery -Scope AllUsers
         Import-Module PackageManagement -Force -Scope Global -ErrorAction SilentlyContinue
@@ -352,13 +352,13 @@ function Step-InstallPackageManagement {
 
     Import-Module PackageManagement -Force -Scope Global -ErrorAction SilentlyContinue
     $InstalledModule = Get-Module -Name PackageManagement -ListAvailable | Where-Object {$_.Version -ge '1.4.8.1'} | Sort-Object Version -Descending | Select-Object -First 1
-    if ($InstalledModule) {DarkGray "[✓] PackageManagement $([string]$InstalledModule.Version)"
+    if ($InstalledModule) {
+        Write-Host -ForegroundColor DarkGray "[✓] PackageManagement $([string]$InstalledModule.Version)"
     }
     Import-Module PowerShellGet -Force -Scope Global -ErrorAction SilentlyContinue
     $InstalledModule = Get-PackageProvider -Name PowerShellGet | Where-Object {$_.Version -ge '2.2.5'} | Sort-Object Version -Descending | Select-Object -First 1
     if ($InstalledModule) {
-        Write-Host -ForegroundColor DarkGray "[✓
-        Write-Host -ForegroundColor Green "[+] PowerShellGet $([string]$InstalledModule.Version)"
+        Write-Host -ForegroundColor DarkGray "[✓] PowerShellGet $([string]$InstalledModule.Version)"
     }
 }
 function Step-TrustPSGallery {
@@ -367,12 +367,12 @@ function Step-TrustPSGallery {
     
     $PowerShellGallery = Get-PSRepository -Name PSGallery -ErrorAction Ignore
     if ($PowerShellGallery.InstallatCyan "[→] Set-PSRepository PSGallery Trusted"
+        Set-PSRepository -Name PSGalionPolicy -ne 'Trusted') {
+        Write-Host -ForegroundColor Cyan "[→] Set-PSRepository PSGallery Trusted"
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
     }
     if ($PowerShellGallery.InstallationPolicy -eq 'Trusted') {
-        Write-Host -ForegroundColor DarkGray "[✓ -eq 'Trusted') {
-        Write-Host -ForegroundColor Green "[+] PSRepository PSGallery Trusted"
-    }
+        Write-Host -ForegroundColor DarkGray "[✓
 }
 function Step-InstallPowerShellModule {
     [CmdletBinding()]
@@ -421,8 +421,7 @@ function Step-InstallPowerShellModule {
     else {
         # The module is already installed and up to date
         Import-Module -Name $Name -Force
-        Write-Host -ForegroundColor DarkGray "[✓
-        Write-Host -ForegroundColor Green "[+] $Name $($InstalledModule.Version)"
+        Write-Host -ForegroundColor DarkGray "[✓] $Name $($InstalledModule.Version)"
     }
 }
 function Step-desktopWallpaper {
@@ -438,10 +437,10 @@ function Step-desktopWallpaper {
         New-Item -Path $scriptDirectory -ItemType Directory | Out-Null
     }
 
-    if (Test-Path $scriptPath) {DarkGray "[✓] Replacing default wallpaper and lockscreen images"
+    if (Test-Path $scriptPath) {
+        Write-Host -ForegroundColor DarkGray "[✓] Replacing default wallpaper and lockscreen images"
     } else {
-        Write-Host -ForegroundColor Cyan "[→
-        Write-Host -ForegroundColor Yellow "[-] Replacing default wallpaper and lockscreen images"
+        Write-Host -ForegroundColor Cyan "[→] Replacing default wallpaper and lockscreen images"
         # Download the script
         Invoke-WebRequest -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/set-lockScreen_Wallpaper.ps1 -OutFile $scriptPath
         # Execute the script
