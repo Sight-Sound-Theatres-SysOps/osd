@@ -31,7 +31,7 @@ powershell iex (irm osd.sight-sound.dev)
 [CmdletBinding()]
 param()
 $ScriptName = 'osd.sight-sound.dev'
-$ScriptVersion = '26.1.17.5'
+$ScriptVersion = '26.1.17.6'
 
 #region Initialize
 $Transcript = "$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))-$ScriptName.log"
@@ -52,7 +52,7 @@ Write-Host -ForegroundColor DarkGray "[✓] $ScriptName $ScriptVersion ($Windows
 #endregion
 
 #region import functions
-Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/OSDeploy/OSD/master/cloud/functions.ps1)
+#Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/OSDeploy/OSD/master/cloud/functions.ps1)
 Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobeFunctions.ps1)
 Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobe_menu_functions.ps1)
 Invoke-Expression -Command (Invoke-RestMethod -Uri https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/oobe_menu.ps1)
@@ -78,9 +78,11 @@ Write-Host -ForegroundColor DarkGray "[✓] Transport Layer Security (TLS) 1.2"
 #region WinPE
 if ($WindowsPhase -eq 'WinPE') {
     
-    osdcloud-StartWinPE -OSDCloud | Out-Null
+    # Start OSDCloud in WinPE
+    #osdcloud-StartWinPE -OSDCloud | Out-Null
 
-    Invoke-Expression (Invoke-RestMethod https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/Win11.ps1)
+    # Redirect to Win11.ps1 for further processing
+    #Invoke-Expression (Invoke-RestMethod https://raw.githubusercontent.com/Sight-Sound-Theatres-SysOps/osd/main/functions/Win11.ps1)
     
     #Stop the startup Transcript.  OSDCloud will create its own
     $null = Stop-Transcript -ErrorAction Ignore
