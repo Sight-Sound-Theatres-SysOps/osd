@@ -2,11 +2,11 @@
 #Requires -RunAsAdministrator
 
 # Verify script is running as ssLocalAdmin
-$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-if ($currentUser -notlike '*\ssLocalAdmin') {
-    Write-Host -ForegroundColor Red "[!] This script must be run as ssLocalAdmin. Current user: $currentUser"
-    exit 1
-}
+#$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+#if ($currentUser -notlike '*\ssLocalAdmin') {
+#    Write-Host -ForegroundColor Red "[!] This script must be run as ssLocalAdmin. Current user: $currentUser"
+#    exit 1
+#}
 
 # Clear the screen and display banner
 Clear-Host
