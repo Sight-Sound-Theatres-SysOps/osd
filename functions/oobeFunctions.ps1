@@ -185,11 +185,11 @@ function Step-setTimeZoneFromIP {
         Write-Warning "Failed to synchronize system time. Proceeding anyway."
     }
 
-    # Method 1: Use a more reliable API (ipapi.co) to fetch the time zone
-    $URIRequest = "https://ipapi.co/json/"
+    # Method 1: Use ipinfo.io API to fetch the time zone
+    $URIRequest = "https://ipinfo.io/json"
     $TimeZoneAPI = $null
     try {
-        Write-Host -ForegroundColor Cyan "[→] Fetching time zone from ipapi.co"
+        Write-Host -ForegroundColor Cyan "[→] Fetching time zone from ipinfo.io"
         $Response = Invoke-WebRequest -Uri $URIRequest -UseBasicParsing -ErrorAction Stop
         $TimeZoneAPI = ($Response.Content | ConvertFrom-Json).timezone
     }
