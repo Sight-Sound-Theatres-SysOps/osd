@@ -251,6 +251,17 @@ Write-Host -ForegroundColor Cyan "[!] Install notes saved to $installNotesFile"
 
 
 
+# Reset execution policy
+########################################################
+if ((Get-ExecutionPolicy -Scope CurrentUser) -ne 'Restricted') {
+    Set-ExecutionPolicy Restricted -Scope CurrentUser -Force
+    Write-Host -ForegroundColor Green "[+] Execution policy set to Restricted for CurrentUser"
+} else {
+    Write-Host -ForegroundColor DarkGray "[+] Execution policy already set to Restricted for CurrentUser"
+}
+
+
+
 # Restart computer
 ########################################################
 
