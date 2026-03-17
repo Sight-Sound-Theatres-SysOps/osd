@@ -1,4 +1,13 @@
 
+#Requires -RunAsAdministrator
+
+# Verify script is running as ssLocalAdmin
+$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+if ($currentUser -notlike '*\ssLocalAdmin') {
+    Write-Host -ForegroundColor Red "[!] This script must be run as ssLocalAdmin. Current user: $currentUser"
+    exit 1
+}
+
 # Clear the screen and display banner
 Clear-Host
 Write-Host "###############################################" -ForegroundColor Cyan
@@ -7,19 +16,23 @@ Write-Host "###############################################" -ForegroundColor Cy
 Write-Host ""
 Write-Host ""
 
-# Check Curl version and install if necessary
+# Create temp directory once for all downloads
+$tempDir = "C:\temp"
+if (!(Test-Path $tempDir)) {
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+}
+
+# Check curl version and install if necessary
 function Install-Curl {
     [CmdletBinding()]
     param ()
     if (-not (Get-Command 'curl.exe' -ErrorAction SilentlyContinue)) {
-        Write-Host -ForegroundColor Yellow "[-] Install Curl for Windows"
+        Write-Host -ForegroundColor Yellow "[-] Installing Curl for Windows"
         $Uri = 'https://curl.se/windows/latest.cgi?p=win64-mingw.zip'
-        Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile "$env:TEMP\curl.zip"
-    
-        $null = New-Item -Path "$env:TEMP\Curl" -ItemType Directory -Force
-        Expand-Archive -Path "$env:TEMP\curl.zip" -DestinationPath "$env:TEMP\curl"
-    
-        Get-ChildItem "$env:TEMP\curl" -Include 'curl.exe' -Recurse | foreach {Copy-Item $_ -Destination "$env:SystemRoot\System32\curl.exe"}
+        Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile "$tempDir\curl.zip"
+        Expand-Archive -Path "$tempDir\curl.zip" -DestinationPath "$tempDir\curl" -Force
+        Get-ChildItem "$tempDir\curl" -Include 'curl.exe' -Recurse | ForEach-Object { Copy-Item $_ -Destination "$env:SystemRoot\System32\curl.exe" }
+        Write-Host -ForegroundColor Green "[+] Curl installed"
     }
     else {
         $GetItemCurl = Get-Item -Path "$env:SystemRoot\System32\curl.exe" -ErrorAction SilentlyContinue
@@ -29,6 +42,36 @@ function Install-Curl {
 
 Install-Curl
 
+# Check and install WinGet if not present
+function Install-WinGetIfNeeded {
+    [CmdletBinding()]
+    param ()
+    if (Get-Command 'winget.exe' -ErrorAction SilentlyContinue) {
+        Write-Host -ForegroundColor Green "[+] WinGet is already installed"
+        return
+    }
+    Write-Host -ForegroundColor Yellow "[-] WinGet not found. Installing..."
+    try {
+        $wingetScript = Invoke-RestMethod -Uri "https://asheroto.com/winget" -ErrorAction Stop
+        if ($wingetScript) {
+            $tempScript = Join-Path $tempDir "winget_install_$(Get-Random).ps1"
+            $wingetScript | Out-File -FilePath $tempScript -Force
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempScript
+            Remove-Item -Path $tempScript -Force -ErrorAction Ignore
+            Write-Host -ForegroundColor Green "[+] WinGet installed successfully"
+        }
+        else {
+            throw "WinGet installation script content was empty"
+        }
+    }
+    catch {
+        Write-Host -ForegroundColor Red "[!] Failed to install WinGet: $($_.Exception.Message)"
+        exit 1
+    }
+}
+
+Install-WinGetIfNeeded
+
 
 # Install necessary WinGet Packages 
 ########################################################
@@ -37,25 +80,14 @@ $apps = "Microsoft.DotNet.DesktopRuntime.6",
         "Microsoft.DotNet.SDK.8"
 
 foreach ($app in $apps) {
-    winget install --id $app --accept-package-agreements --accept-source-agreements -e
+    winget install --id $app --source winget --accept-package-agreements --accept-source-agreements -e
 }
 
 
-# Set necessary reg keys
+# Configure TLS/SSL protocols and strong crypto
 ########################################################
 
-# Function to create registry key if it doesn't exist
-function Create-RegistryKeyIfNotExists {
-    param (
-        [string]$Path
-    )
-    if (-not (Test-Path $Path)) {
-        New-Item -Path $Path -Force | Out-Null
-    }
-}
-
-# Function to create registry property if it doesn't exist
-function Create-RegistryPropertyIfNotExists {
+function Set-RegistryProperty {
     param (
         [string]$Path,
         [string]$Name,
@@ -65,130 +97,86 @@ function Create-RegistryPropertyIfNotExists {
     if (-not (Test-Path $Path)) {
         New-Item -Path $Path -Force | Out-Null
     }
-    if (-not (Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue)) {
-        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null
+    New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null
+}
+
+$basePath = "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols"
+
+# Disable legacy protocols (SSL 2.0, SSL 3.0, TLS 1.0, TLS 1.1)
+foreach ($protocol in @("SSL 2.0", "SSL 3.0", "TLS 1.0", "TLS 1.1")) {
+    foreach ($role in @("Client", "Server")) {
+        Set-RegistryProperty "$basePath\$protocol\$role" "Enabled" 0 "DWord"
     }
 }
 
-# Create SSL 2.0 Client and Server registry keys if they don't exist
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Client"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Client" "Enabled" 0 "DWord"
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Server"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Server" "Enabled" 0 "DWord"
+# Enable TLS 1.2
+foreach ($role in @("Client", "Server")) {
+    Set-RegistryProperty "$basePath\TLS 1.2\$role" "Enabled" 1 "DWord"
+    Set-RegistryProperty "$basePath\TLS 1.2\$role" "DisabledByDefault" 0 "DWord"
+}
 
-# Create SSL 3.0 Client and Server registry keys if they don't exist
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Client"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Client" "Enabled" 0 "DWord"
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server" "Enabled" 0 "DWord"
+# Enable strong crypto for .NET Framework
+foreach ($fwPath in @(
+    "HKLM:\SOFTWARE\Microsoft\.NETFramework\v2.0.50727",
+    "HKLM:\SOFTWARE\Microsoft\.NETFramework\v4.0.30319",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v2.0.50727",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319"
+)) {
+    Set-RegistryProperty $fwPath "SchUseStrongCrypto" 1 "DWord"
+}
 
-# Create TLS 1.0 Client and Server registry keys if they don't exist
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Client"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Client" "Enabled" 0 "DWord"
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server" "Enabled" 0 "DWord"
-
-# Create TLS 1.1 Client and Server registry keys if they don't exist
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Client"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Client" "Enabled" 0 "DWord"
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server" "Enabled" 0 "DWord"
-
-# Create TLS 1.2 Client and Server registry keys if they don't exist
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client" "Enabled" 1 "DWord"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client" "DisabledByDefault" 0 "DWord"
-Create-RegistryKeyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" "Enabled" 1 "DWord"
-Create-RegistryPropertyIfNotExists "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" "DisabledByDefault" 0 "DWord"
-
-# Create SchUseStrongCrypto registry keys if they don't exist 
-Create-RegistryPropertyIfNotExists "HKLM:\SOFTWARE\Microsoft\.NETFramework\v2.0.50727" "SchUseStrongCrypto" 1 "DWord"
-Create-RegistryPropertyIfNotExists "HKLM:\SOFTWARE\Microsoft\.NETFramework\v4.0.30319" "SchUseStrongCrypto" 1 "DWord"
-Create-RegistryPropertyIfNotExists "HKLM:\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v2.0.50727" "SchUseStrongCrypto" 1 "DWord"
-Create-RegistryPropertyIfNotExists "HKLM:\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" "SchUseStrongCrypto" 1 "DWord"
-
-
-# Restart the explorer process to reload the registry
-########################################################
-
-# Get the process ID of the Process Explorer
-Write-Host -ForegroundColor Yellow "[!] Restarting explorer process to reload the registry"
-$processId = (Get-Process -Name explorer).Id
-# Stop the process using the process ID
-Stop-Process -Id $processId -Force
+Write-Host -ForegroundColor Green "[+] TLS/SSL protocols and strong crypto configured"
 
 
 
 # Download and install the StoreCommerce app 
 ########################################################
 
-$url = "https://ssintunedata.blob.core.windows.net/d365/StoreCommerce.Installer.exe"
-$outputDir = "C:\temp"
-$outputFile = Join-Path $outputDir "StoreCommerce.Installer.exe"
+$storeCommerceFile = Join-Path $tempDir "StoreCommerce.Installer.exe"
+Write-Host -ForegroundColor Yellow "[!] Downloading StoreCommerce.Installer.exe"
+curl.exe -o $storeCommerceFile "https://ssintunedata.blob.core.windows.net/d365/StoreCommerce.Installer.exe"
 
-# Check if the output directory exists and create it if necessary
-if (!(Test-Path $outputDir)) {
-    New-Item -ItemType Directory -Path $outputDir | Out-Null
+Write-Host -ForegroundColor Yellow "[!] Installing StoreCommerce..."
+& $storeCommerceFile install --useremoteappcontent --retailserverurl "https://sst-prodret.operations.dynamics.com/Commerce"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host -ForegroundColor Red "[!] StoreCommerce installer exited with code $LASTEXITCODE"
+} else {
+    Write-Host -ForegroundColor Green "[+] StoreCommerce app installed successfully"
 }
-
-# Download the file using curl
-Write-host -ForegroundColor yellow "[!] Downloading StoreCommerce.Installer.exe"
-curl.exe -o $outputFile $url
-
-# Run the installer with the provided arguments
-cd $outputDir
-.\StoreCommerce.Installer.exe install --useremoteappcontent --retailserverurl "https://sst-prodret.operations.dynamics.com/Commerce"
-
-Write-Host -ForegroundColor Green "[+] StoreCommerce app installed successfully"
 
 
 
 #Download and install the Epson OPOS ADK 
 ########################################################
 
-$url = "https://ssintunedata.blob.core.windows.net/d365/EPSON_OPOS_ADK_V3.00ER20.exe"
-$outputDir = "C:\temp"
-$outputFile = Join-Path $outputDir "EPSON_OPOS_ADK_V3.00ER20.exe"
+$epsonAdkFile = Join-Path $tempDir "EPSON_OPOS_ADK_V3.00ER20.exe"
+Write-Host -ForegroundColor Yellow "[!] Downloading Epson OPOS ADK"
+curl.exe -o $epsonAdkFile "https://ssintunedata.blob.core.windows.net/d365/EPSON_OPOS_ADK_V3.00ER20.exe"
 
-# Check if the output directory exists and create it if necessary
-if (!(Test-Path $outputDir)) {
-    New-Item -ItemType Directory -Path $outputDir | Out-Null
+Write-Host -ForegroundColor Yellow "[!] Installing Epson OPOS ADK..."
+& $epsonAdkFile /q DisplayInternalUI="no"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host -ForegroundColor Red "[!] Epson OPOS ADK installer exited with code $LASTEXITCODE"
+} else {
+    Write-Host -ForegroundColor Green "[+] Epson OPOS ADK installed successfully"
 }
-
-# Download the file using Curl
-Write-host -ForegroundColor yellow "[!] Downloading Epson OPOS ADK"
-curl.exe -o $outputFile $url
-
-# Run the installer with the provided arguments
-cd $outputDir
-.\EPSON_OPOS_ADK_V3.00ER20.exe /q DisplayInternalUI=”no”
-
-Write-Host -ForegroundColor Green "[+] Epson OPOS ADK installed successfully"
 
 
 
 #Download and install the Epson OPOS CCOs 
 ########################################################
 
-$url = "https://ssintunedata.blob.core.windows.net/d365/OPOS_CCOs_1.14.001.msi"
-$outputDir = "C:\temp"
-$outputFile = Join-Path $outputDir "OPOS_CCOs_1.14.001.msi"
+$epsonCcosFile = Join-Path $tempDir "OPOS_CCOs_1.14.001.msi"
+Write-Host -ForegroundColor Yellow "[!] Downloading Epson OPOS CCOs"
+curl.exe -o $epsonCcosFile "https://ssintunedata.blob.core.windows.net/d365/OPOS_CCOs_1.14.001.msi"
 
-# Check if the output directory exists and create it if necessary
-if (!(Test-Path $outputDir)) {
-    New-Item -ItemType Directory -Path $outputDir | Out-Null
+Write-Host -ForegroundColor Yellow "[!] Installing Epson OPOS CCOs..."
+$process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/I `"$epsonCcosFile`" /quiet" -Wait -PassThru
+if ($process.ExitCode -ne 0) {
+    Write-Host -ForegroundColor Red "[!] Epson OPOS CCOs installer exited with code $($process.ExitCode)"
+} else {
+    Write-Host -ForegroundColor Green "[+] Epson OPOS CCOs installed successfully"
 }
-
-# Download the file using Curl
-Write-host -ForegroundColor yellow "[!] Downloading Epson OPOS CCOs"
-curl.exe -o $outputFile $url
-
-# Run the installer with the provided arguments
-cd $outputDir
-msiexec /I "OPOS_CCOs_1.14.001.msi" /quiet
-
-Write-Host -ForegroundColor Green "[+] Epson OPOS CCOs installed successfully"
 
 
 
@@ -254,27 +242,18 @@ Write-Host -ForegroundColor Green "[+] Powersettings set to monitor timeout 20 m
 
 
 
-# Create install notes .txt file in c:\temp
+# Download install notes
 ########################################################
 
-# Set the URL and destination path
-$URL = "https://ssintunedata.blob.core.windows.net/d365/POS_install_notes.txt"
-$Destination = "C:\temp\POS_install_notes.txt"
-
-# Check if C:\temp directory exists, if not create it
-if (!(Test-Path -Path "C:\temp")) {
-    New-Item -ItemType Directory -Path "C:\temp"
-}
-
-# Download the file
-Invoke-WebRequest -Uri $URL -OutFile $Destination
-Write-Host -ForegroundColor Cyan "[!] Install notes .txt file saved in c:\temp"
+$installNotesFile = Join-Path $tempDir "POS_install_notes.txt"
+curl.exe -o $installNotesFile "https://ssintunedata.blob.core.windows.net/d365/POS_install_notes.txt"
+Write-Host -ForegroundColor Cyan "[!] Install notes saved to $installNotesFile"
 
 
 
 # Restart computer
 ########################################################
 
-Write-Warning 'Device will restart in 30 seconds.  Press Ctrl + C to cancel'
-        Start-Sleep -Seconds 30
-        Restart-Computer -Force
+Write-Warning 'Device will restart in 30 seconds. Press Ctrl + C to cancel'
+Start-Sleep -Seconds 30
+Restart-Computer -Force
