@@ -1,9 +1,46 @@
 ############################################
 #                                          # 
-#  Remove app from programs list manually  #
+#  Reinstall StoreCommerce POS             #
 #                                          #
 ############################################
 
+
+# Uninstall existing StoreCommerce app
+function Uninstall-StoreCommerce {
+    [CmdletBinding()]
+    param ()
+
+    Write-Host -ForegroundColor Yellow "[!] Attempting to uninstall existing StoreCommerce app..."
+
+    # Method 1: Use the StoreCommerce installer's built-in uninstall command
+    $installerPath = "C:\temp\StoreCommerce.Installer.exe"
+    if (Test-Path $installerPath) {
+        Write-Host -ForegroundColor Yellow "[-] Running StoreCommerce.Installer.exe uninstall..."
+        $process = Start-Process -FilePath $installerPath -ArgumentList "uninstall" -Wait -PassThru
+        if ($process.ExitCode -eq 0) {
+            Write-Host -ForegroundColor Green "[+] StoreCommerce uninstalled successfully via installer"
+            return
+        }
+        else {
+            Write-Host -ForegroundColor Yellow "[!] Installer uninstall exited with code $($process.ExitCode), trying alternative method..."
+        }
+    }
+
+    # Method 2: Remove via AppxPackage (Store Commerce is an MSIX app)
+    $appxPackage = Get-AppxPackage -AllUsers -Name "*StoreCommerce*" -ErrorAction SilentlyContinue
+    if ($appxPackage) {
+        foreach ($pkg in $appxPackage) {
+            Write-Host -ForegroundColor Yellow "[-] Removing AppxPackage: $($pkg.PackageFullName)"
+            Remove-AppxPackage -Package $pkg.PackageFullName -AllUsers -ErrorAction SilentlyContinue
+        }
+        Write-Host -ForegroundColor Green "[+] StoreCommerce AppxPackage removed"
+        return
+    }
+
+    Write-Host -ForegroundColor Cyan "[i] No existing StoreCommerce installation found"
+}
+
+Uninstall-StoreCommerce
 
 # Check Curl version and install if necessary
 function Install-Curl {
