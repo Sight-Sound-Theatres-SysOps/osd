@@ -85,5 +85,8 @@ cd $outputDir
 .\StoreCommerce.Installer.exe install --useremoteappcontent --retailserverurl "https://sst-prodret.operations.dynamics.com/Commerce"
 
 
-
-
+# Reset execution policy to Restricted if it isn't already
+if ((Get-ExecutionPolicy -Scope CurrentUser) -ne 'Restricted') {
+    Write-Host -ForegroundColor Yellow "[!] Resetting ExecutionPolicy to Restricted for CurrentUser"
+    Set-ExecutionPolicy Restricted -Scope CurrentUser -Force
+}
