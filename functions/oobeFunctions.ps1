@@ -185,19 +185,36 @@ function Step-setTimeZoneFromIP {
         Write-Warning "Failed to synchronize system time. Proceeding anyway."
     }
 
-    # Method 1: Use ipinfo.io API to fetch the time zone
-    $URIRequest = "https://ipinfo.io/json"
+    # Define API endpoints to try in order
+    $TimeZoneAPIs = @(
+        @{ Name = "ipinfo.io";  Uri = "https://ipinfo.io/json";  Path = "timezone" },
+        @{ Name = "ipwho.is";   Uri = "https://ipwho.is/";       Path = "timezone.id" }
+    )
+
+    $headers = @{ "User-Agent" = "OSDCloud/1.0" }
     $TimeZoneAPI = $null
-    try {
-        Write-Host -ForegroundColor Cyan "[→] Fetching time zone from ipinfo.io"
-        $Response = Invoke-WebRequest -Uri $URIRequest -UseBasicParsing -ErrorAction Stop
-        $TimeZoneAPI = ($Response.Content | ConvertFrom-Json).timezone
-    }
-    catch {
-        Write-Warning "Failed to fetch time zone from $URIRequest. Error: $($_.Exception.Message)"
+
+    foreach ($api in $TimeZoneAPIs) {
+        try {
+            Write-Host -ForegroundColor Cyan "[→] Fetching time zone from $($api.Name)"
+            $Response = Invoke-WebRequest -Uri $api.Uri -UseBasicParsing -Headers $headers -ErrorAction Stop
+            $json = $Response.Content | ConvertFrom-Json
+            if ($api.Path -eq "timezone") {
+                $TimeZoneAPI = $json.timezone
+            } else {
+                $TimeZoneAPI = $json.timezone.id
+            }
+            if ($TimeZoneAPI) {
+                Write-Host -ForegroundColor DarkGray "[✓] Time zone retrieved from $($api.Name): $TimeZoneAPI"
+                break
+            }
+        }
+        catch {
+            Write-Warning "Failed to fetch time zone from $($api.Name). Error: $($_.Exception.Message)"
+        }
     }
 
-    # Method 2: Fallback to Windows Location Services if API fails
+    # Fallback to Windows Location Services if all APIs fail
     if (-not $TimeZoneAPI) {
         Write-Host -ForegroundColor Yellow "[!] API failed, attempting to use Windows Location Services for time zone detection"
         try {
