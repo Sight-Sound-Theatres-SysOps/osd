@@ -733,6 +733,11 @@ $firmwarePkSubject      = 'Unknown'
 
 foreach ($k in $dbThumbprints2023.Keys) { $firmwareDbResults[$k] = $false }
 
+
+# Track whether the 2011 predecessor certs were present.
+# Microsoft only installs the 2023 replacements if the 2011 predecessor was
+# already enrolled -- if absent, the 2023 replacement being missing is expected.
+$firmware2011UefiCaPresent = $false
 if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
     Write-Step 'Firmware Certificate Scan  (Get-UEFICertificate)'
 
@@ -778,6 +783,10 @@ if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
             }
             if ($isExpiring2011)      { $firmwareExpiringFound += $expiring2011[$cert.Thumbprint] }
             if ($cert.Type -eq 'KEK' -and $expired -and -not $is2023kek) { $firmwareOemKekExpired = $true }
+            # Track presence of 2011 UEFI CA -- its absence means the 2023 replacements are not expected
+            if ($cert.Type -eq 'DB' -and $cert.Thumbprint -eq '46DEF63B5CE61CF8BA0DE2E6639C1019D0ED14F3') {
+                $firmware2011UefiCaPresent = $true
+            }
 
             # Display row
             $tag = if ($is2023kek -or $is2023db) { '[2023-OK] ' }
@@ -797,11 +806,23 @@ if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
             Write-Log "UEFI $($cert.Type): $($cert.Subject) | Expires $($cert.Expires.ToString('yyyy-MM-dd')) | Thumb $($cert.Thumbprint)"
         }
 
-        # Flag missing 2023 DB certs
+        # Flag missing 2023 DB certs -- but only flag the two UEFI CA replacements as
+        # MISSING if the 2011 predecessor was actually present.  If UEFI CA 2011 was
+        # never enrolled, Windows intentionally skips installing its replacements.
+        $optionalIfNo2011 = @('Microsoft UEFI CA 2023', 'Microsoft Option ROM UEFI CA 2023')
+        $expectedDbCount  = $dbThumbprints2023.Count
         foreach ($certName in $dbThumbprints2023.Keys) {
             if (-not $firmwareDbResults[$certName]) {
-                Write-Host ("    DB    [MISSING]   $certName") -ForegroundColor Red
-                Write-Log "UEFI DB MISSING: $certName"
+                if ($certName -in $optionalIfNo2011 -and -not $firmware2011UefiCaPresent) {
+                    # Expected absence -- 2011 predecessor was never enrolled on this device
+                    Write-Host ("    DB    [N/A]       $certName  (not expected -- UEFI CA 2011 not enrolled)") -ForegroundColor DarkGray
+                    Write-Log "UEFI DB N/A: $certName -- UEFI CA 2011 not present, replacement not expected"
+                    $expectedDbCount--
+                }
+                else {
+                    Write-Host ("    DB    [MISSING]   $certName") -ForegroundColor Red
+                    Write-Log "UEFI DB MISSING: $certName"
+                }
             }
         }
         if (-not $firmwareKek2023Present) {
@@ -813,7 +834,12 @@ if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
         $dbCount = ($firmwareDbResults.Values | Where-Object { $_ }).Count
         Write-Info "PK Subject : $firmwarePkSubject"
         Write-Info "KEK 2023   : $(if ($firmwareKek2023Present) { 'PRESENT' } else { 'MISSING' })"
-        Write-Info "DB 2023    : $dbCount of $($dbThumbprints2023.Count) certs present"
+        if ($firmware2011UefiCaPresent) {
+            Write-Info "DB 2023    : $dbCount of $($dbThumbprints2023.Count) certs present"
+        }
+        else {
+            Write-Info "DB 2023    : $dbCount of $expectedDbCount certs expected  (UEFI CA 2011 not enrolled -- 2 replacements not applicable)"
+        }
         if ($firmwareOemKekExpired) {
             Write-Warn 'One or more OEM KEK entries have already expired.  This may cause Firmware_Unknown errors.'
         }
@@ -998,7 +1024,12 @@ if ($isDell) {
 }
 
 # Determine if fully updated already
-$allDbPresent   = $firmwareScanDone -and (($firmwareDbResults.Values | Where-Object { $_ }).Count -eq $dbThumbprints2023.Count)
+# When UEFI CA 2011 was never enrolled, the two replacement certs are not expected.
+# Adjust the required count accordingly before evaluating allDbPresent.
+$requiredDbCount = $dbThumbprints2023.Count
+if (-not $firmware2011UefiCaPresent) { $requiredDbCount -= 2 }
+$actualDbCount  = ($firmwareDbResults.Values | Where-Object { $_ }).Count
+$allDbPresent   = $firmwareScanDone -and ($actualDbCount -ge $requiredDbCount)
 $fullyUpdated   = ($uefiStatus -eq 'Updated') -or ($firmwareScanDone -and $firmwareKek2023Present -and $allDbPresent)
 
 # ── Determine action ──────────────────────────────────────────────────────────
