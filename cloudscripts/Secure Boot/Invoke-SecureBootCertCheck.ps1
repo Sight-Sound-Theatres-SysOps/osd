@@ -90,6 +90,10 @@ if ($PSVersionTable.PSEdition -eq 'Core') {
     if ($SkipFirmwareScan) { $argList += ' -SkipFirmwareScan' }
     if ($SkipBiosCheck)    { $argList += ' -SkipBiosCheck' }
 
+    # Add -NoExit equivalent by appending a pause so the 5.1 window stays open
+    # after the script finishes -- otherwise it closes immediately when launched
+    # from a remote menu or IEX context and the tech can't read the results.
+    $argList += "; Write-Host ''; Write-Host '  Press any key to close this window...' -ForegroundColor DarkGray; `$null = `$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')"
     Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Verb RunAs -Wait
     exit
 }
