@@ -1,5 +1,4 @@
 #Requires -RunAsAdministrator
-#Requires -Version 5.1
 
 <#
 .SYNOPSIS
@@ -68,6 +67,32 @@ param (
     [switch]$SkipFirmwareScan,
     [switch]$SkipBiosCheck
 )
+
+# ── PS7 / PowerShell Core relaunch guard ─────────────────────────────────────
+# This script requires Windows PowerShell 5.1 for full compatibility with
+# PSGallery, the OSD module, and the SecureBoot cmdlets.  If running under
+# PowerShell 7 (Core), automatically relaunch in powershell.exe 5.1.
+# -Verb RunAs also handles elevation in case the tech forgot to run as admin.
+if ($PSVersionTable.PSEdition -eq 'Core') {
+    Write-Host ''
+    Write-Host '  [INFO] PowerShell 7 detected.  Relaunching in Windows PowerShell 5.1...' -ForegroundColor Yellow
+    $scriptPath = $MyInvocation.MyCommand.Path
+    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+        Write-Host '  [FAIL] Could not determine script path for relaunch.' -ForegroundColor Red
+        Write-Host '         Please run this script from Windows PowerShell 5.1 (powershell.exe).' -ForegroundColor Red
+        exit 1
+    }
+    # Pass through any parameters that were supplied
+    $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+    if ($StatusFilePath  -ne 'C:\ProgramData\SecureBootCertCheck\status.json') {
+        $argList += " -StatusFilePath `"$StatusFilePath`""
+    }
+    if ($SkipFirmwareScan) { $argList += ' -SkipFirmwareScan' }
+    if ($SkipBiosCheck)    { $argList += ' -SkipBiosCheck' }
+
+    Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Verb RunAs -Wait
+    exit
+}
 
 $ErrorActionPreference = 'Stop'
 
@@ -815,7 +840,7 @@ if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
             if (-not $firmwareDbResults[$certName]) {
                 if ($certName -in $optionalIfNo2011 -and -not $firmware2011UefiCaPresent) {
                     # Expected absence -- 2011 predecessor was never enrolled on this device
-                    Write-Host ("    DB    [N/A]       $certName  (not expected -- UEFI CA 2011 not enrolled)") -ForegroundColor DarkGray
+                    Write-Host ("    DB    [N/A]       $certName  (not installed -- only needed if Microsoft UEFI CA 2011 was enrolled on this device)") -ForegroundColor DarkGray
                     Write-Log "UEFI DB N/A: $certName -- UEFI CA 2011 not present, replacement not expected"
                     $expectedDbCount--
                 }
@@ -838,7 +863,7 @@ if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
             Write-Info "DB 2023    : $dbCount of $($dbThumbprints2023.Count) certs present"
         }
         else {
-            Write-Info "DB 2023    : $dbCount of $expectedDbCount certs expected  (UEFI CA 2011 not enrolled -- 2 replacements not applicable)"
+            Write-Info "DB 2023    : $dbCount of $expectedDbCount applicable certs present  (2 optional certs skipped -- this device never had Microsoft UEFI CA 2011 enrolled, so Windows does not install its replacements)"
         }
         # Only surface expired OEM KEK warning when not already fully updated -- on a confirmed-updated device it is noise, not actionable.
         if ($firmwareOemKekExpired -and -not $firmwareKek2023Present) {
