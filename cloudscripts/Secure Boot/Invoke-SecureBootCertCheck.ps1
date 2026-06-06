@@ -75,8 +75,18 @@ $ErrorActionPreference = 'Stop'
 $sbPath        = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot'
 $servicingPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\Servicing'
 
-# ── 2023 cert thumbprints (ground truth) ──────────────────────────────────────
-$kekThumbprint2023 = '5DCA954671E1A2EA78D8CC8A60AC3BCDE8CD0F87'
+# ── 2023 cert identification ──────────────────────────────────────────────────
+# Match on subject name (CN) as primary -- thumbprints can vary across OEM-specific
+# cert packages.  Thumbprints are kept for logging and secondary confirmation only.
+$kekSubject2023    = 'Microsoft Corporation KEK 2K CA 2023'
+$kekThumbprint2023 = '5DCA954671E1A2EA78D8CC8A60AC3BCDE8CD0F87'   # for logging only
+
+$dbSubjects2023 = [ordered]@{
+    'Windows UEFI CA 2023'              = '45A0FA32604773C82433C3B7D59E7466B3AC0C67'
+    'Microsoft UEFI CA 2023'            = 'B5EEB4A6706048073F0ED296E7F580A790B59EAA'
+    'Microsoft Option ROM UEFI CA 2023' = '3FB39E2B8BD183BF9E4594E72183CA60AFCD4277'
+}
+# Keep thumbprint lookup for display tagging (used in the table rendering)
 $dbThumbprints2023 = [ordered]@{
     'Windows UEFI CA 2023'              = '45A0FA32604773C82433C3B7D59E7466B3AC0C67'
     'Microsoft UEFI CA 2023'            = 'B5EEB4A6706048073F0ED296E7F580A790B59EAA'
@@ -735,18 +745,36 @@ if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
         Write-SectionLine
 
         foreach ($cert in $ueficerts) {
-            $expired   = ($cert.Expires -lt (Get-Date))
+            $expired      = ($cert.Expires -lt (Get-Date))
             $expiringSoon = ($cert.Expires -lt (Get-Date).AddMonths(6) -and -not $expired)
-            $is2023kek = ($cert.Type -eq 'KEK' -and $cert.Thumbprint -eq $kekThumbprint2023)
-            $is2023db  = ($cert.Type -eq 'DB'  -and $dbThumbprints2023.Values -contains $cert.Thumbprint)
+
+            # Match 2023 certs by subject name (CN) -- thumbprints vary across OEM
+            # cert packages so subject name is the reliable primary identifier
+            $certCN = if ($cert.Subject -match 'CN=([^,]+)') { $Matches[1].Trim() } else { $cert.Subject }
+
+            $is2023kek = ($cert.Type -eq 'KEK' -and $certCN -eq $kekSubject2023)
+            $is2023db  = ($cert.Type -eq 'DB'  -and $dbSubjects2023.Keys -contains $certCN)
+
+            # Fallback: also match by thumbprint in case subject CN format differs
+            if (-not $is2023kek -and $cert.Type -eq 'KEK' -and $cert.Thumbprint -eq $kekThumbprint2023) {
+                $is2023kek = $true
+            }
+            if (-not $is2023db -and $cert.Type -eq 'DB' -and $dbThumbprints2023.Values -contains $cert.Thumbprint) {
+                $is2023db = $true
+            }
+
             $isExpiring2011 = $expiring2011.ContainsKey($cert.Thumbprint)
 
             # Track state
             if ($cert.Type -eq 'PK') { $firmwarePkSubject = $cert.Subject }
             if ($is2023kek)           { $firmwareKek2023Present = $true }
             if ($is2023db) {
-                $certName = $dbThumbprints2023.Keys | Where-Object { $dbThumbprints2023[$_] -eq $cert.Thumbprint }
-                $firmwareDbResults[$certName] = $true
+                # Find which named cert this matches -- try subject first, then thumbprint
+                $certName = $dbSubjects2023.Keys | Where-Object { $_ -eq $certCN }
+                if (-not $certName) {
+                    $certName = $dbThumbprints2023.Keys | Where-Object { $dbThumbprints2023[$_] -eq $cert.Thumbprint }
+                }
+                if ($certName) { $firmwareDbResults[$certName] = $true }
             }
             if ($isExpiring2011)      { $firmwareExpiringFound += $expiring2011[$cert.Thumbprint] }
             if ($cert.Type -eq 'KEK' -and $expired -and -not $is2023kek) { $firmwareOemKekExpired = $true }
