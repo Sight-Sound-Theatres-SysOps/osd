@@ -300,50 +300,100 @@ function Write-StatusFile {
     }
 }
 
+# ── PowerShellGet bootstrap ───────────────────────────────────────────────────
+# PowerShellGet v2/v3 side-by-side conflicts are common on managed endpoints.
+# Force-import the highest available version once before any gallery operations,
+# then cache whether gallery cmdlets are usable so we don't repeat this per call.
+$script:PSGetAvailable = $false
+function Initialize-PSGet {
+    if ($script:PSGetAvailable) { return $true }
+    try {
+        # Prefer v3 (PSResourceGet) if present, fall back to v2
+        $psget = Get-Module -ListAvailable -Name 'PowerShellGet' |
+                 Sort-Object Version -Descending |
+                 Select-Object -First 1
+        if ($null -ne $psget) {
+            Import-Module PowerShellGet -RequiredVersion $psget.Version -Force -ErrorAction Stop
+        }
+        # Smoke-test that Find-Module is callable
+        $null = Get-Command Find-Module -ErrorAction Stop
+        $script:PSGetAvailable = $true
+        return $true
+    }
+    catch {
+        Write-Log "WARN: PowerShellGet could not be loaded -- $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# ── PSGallery trust helper ────────────────────────────────────────────────────
+function Set-PSGalleryTrusted {
+    try {
+        $repo = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+        if ($null -ne $repo -and $repo.InstallationPolicy -ne 'Trusted') {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+        }
+    }
+    catch { }
+}
+
 # ── Module install/update helpers ─────────────────────────────────────────────
 function Ensure-Module {
-    param([string]$ModuleName, [string]$MinVersion = '')
+    param([string]$ModuleName)
 
     $installed = Get-Module -ListAvailable -Name $ModuleName |
                  Sort-Object Version -Descending |
                  Select-Object -First 1
 
     if ($null -ne $installed) {
-        # Check for newer version on gallery
-        try {
-            $gallery = Find-Module -Name $ModuleName -ErrorAction Stop
-            if ([version]$gallery.Version -gt [version]$installed.Version) {
-                Write-Info "$ModuleName $($installed.Version) installed.  Newer version $($gallery.Version) available.  Updating..."
-                # Remove old versions first to avoid side-by-side conflicts
-                Get-Module -ListAvailable -Name $ModuleName | ForEach-Object {
-                    try { Uninstall-Module -Name $ModuleName -RequiredVersion $_.Version -Force -ErrorAction SilentlyContinue } catch { }
+        # Try gallery version check -- skip gracefully if PSGet unavailable
+        if (Initialize-PSGet) {
+            try {
+                $gallery = Find-Module -Name $ModuleName -ErrorAction Stop
+                if ([version]$gallery.Version -gt [version]$installed.Version) {
+                    Write-Info "$ModuleName $($installed.Version) installed.  Newer version $($gallery.Version) available.  Updating..."
+                    # Remove old versions first to avoid side-by-side conflicts
+                    Get-Module -ListAvailable -Name $ModuleName | ForEach-Object {
+                        try { Uninstall-Module -Name $ModuleName -RequiredVersion $_.Version -Force -ErrorAction SilentlyContinue } catch { }
+                    }
+                    Set-PSGalleryTrusted
+                    Install-Module -Name $ModuleName -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
+                    Write-Pass "$ModuleName updated to $($gallery.Version)."
                 }
-                Install-Module -Name $ModuleName -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
-                Write-Pass "$ModuleName updated to $($gallery.Version)."
+                else {
+                    Write-Pass "$ModuleName $($installed.Version) is current."
+                }
             }
-            else {
-                Write-Pass "$ModuleName $($installed.Version) is current."
+            catch {
+                # Non-fatal -- module is installed, version check just failed
+                Write-Pass "$ModuleName $($installed.Version) is installed.  (Version check skipped: $($_.Exception.Message))"
+                Write-Log  "WARN: $ModuleName version check failed -- $($_.Exception.Message)"
             }
         }
-        catch {
-            Write-Warn "Could not check gallery for $ModuleName updates: $($_.Exception.Message)"
+        else {
+            Write-Pass "$ModuleName $($installed.Version) is installed.  (PSGallery unavailable -- version check skipped)"
         }
         return $true
     }
 
+    # Module not installed -- need PSGet to install it
+    if (-not (Initialize-PSGet)) {
+        Write-Warn "$ModuleName is not installed and PowerShellGet could not be loaded to install it."
+        Write-Info 'Run: Install-Module -Name OSD -Scope CurrentUser  in a fresh PowerShell session, then re-run this script.'
+        Write-Log  "WARN: Cannot install $ModuleName -- PowerShellGet unavailable"
+        return $false
+    }
+
     Write-Info "$ModuleName not found.  Installing from PSGallery..."
     try {
-        # Trust PSGallery silently for this session to avoid interactive prompts
-        $repo = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
-        if ($null -ne $repo -and $repo.InstallationPolicy -ne 'Trusted') {
-            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
-        }
+        Set-PSGalleryTrusted
         Install-Module -Name $ModuleName -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
         Write-Pass "$ModuleName installed."
         return $true
     }
     catch {
         Write-Warn "Could not install $ModuleName : $($_.Exception.Message)"
+        Write-Log  "ERROR: Install $ModuleName failed -- $($_.Exception.Message)"
         return $false
     }
 }
@@ -351,38 +401,57 @@ function Ensure-Module {
 function Ensure-Script {
     param([string]$ScriptName)
 
-    $installed = Get-InstalledScript -Name $ScriptName -ErrorAction SilentlyContinue
-    if ($null -ne $installed) {
-        try {
-            $gallery = Find-Script -Name $ScriptName -ErrorAction Stop
-            if ([version]$gallery.Version -gt [version]$installed.Version) {
-                Write-Info "$ScriptName $($installed.Version) installed.  Updating to $($gallery.Version)..."
-                Uninstall-Script -Name $ScriptName -Force -ErrorAction SilentlyContinue
-                Install-Script -Name $ScriptName -Force -Scope CurrentUser -ErrorAction Stop
-                Write-Pass "$ScriptName updated."
+    # Check if script is already on PATH (installed via Install-Script)
+    $installedPath = Get-Command "$ScriptName.ps1" -ErrorAction SilentlyContinue
+    $installed      = $null
+    if (Initialize-PSGet) {
+        try { $installed = Get-InstalledScript -Name $ScriptName -ErrorAction SilentlyContinue } catch { }
+    }
+
+    if ($null -ne $installed -or $null -ne $installedPath) {
+        if (Initialize-PSGet -and $null -ne $installed) {
+            try {
+                $gallery = Find-Script -Name $ScriptName -ErrorAction Stop
+                if ([version]$gallery.Version -gt [version]$installed.Version) {
+                    Write-Info "$ScriptName $($installed.Version) installed.  Updating to $($gallery.Version)..."
+                    try { Uninstall-Script -Name $ScriptName -Force -ErrorAction SilentlyContinue } catch { }
+                    Set-PSGalleryTrusted
+                    Install-Script -Name $ScriptName -Force -Scope CurrentUser -ErrorAction Stop
+                    Write-Pass "$ScriptName updated to $($gallery.Version)."
+                }
+                else {
+                    Write-Pass "$ScriptName $($installed.Version) is current."
+                }
             }
-            else {
-                Write-Pass "$ScriptName $($installed.Version) is current."
+            catch {
+                Write-Pass "$ScriptName is installed.  (Version check skipped: $($_.Exception.Message))"
+                Write-Log  "WARN: $ScriptName version check failed -- $($_.Exception.Message)"
             }
         }
-        catch {
-            Write-Warn "Could not check gallery for $ScriptName updates: $($_.Exception.Message)"
+        else {
+            Write-Pass "$ScriptName is installed.  (PSGallery unavailable -- version check skipped)"
         }
         return $true
     }
 
+    # Script not installed
+    if (-not (Initialize-PSGet)) {
+        Write-Warn "$ScriptName is not installed and PowerShellGet could not be loaded to install it."
+        Write-Info "Run: Install-Script -Name $ScriptName -Scope CurrentUser  in a fresh PowerShell session, then re-run this script."
+        Write-Log  "WARN: Cannot install $ScriptName -- PowerShellGet unavailable"
+        return $false
+    }
+
     Write-Info "$ScriptName not found.  Installing from PSGallery..."
     try {
-        $repo = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
-        if ($null -ne $repo -and $repo.InstallationPolicy -ne 'Trusted') {
-            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
-        }
+        Set-PSGalleryTrusted
         Install-Script -Name $ScriptName -Force -Scope CurrentUser -ErrorAction Stop
         Write-Pass "$ScriptName installed."
         return $true
     }
     catch {
         Write-Warn "Could not install $ScriptName : $($_.Exception.Message)"
+        Write-Log  "ERROR: Install $ScriptName failed -- $($_.Exception.Message)"
         return $false
     }
 }
