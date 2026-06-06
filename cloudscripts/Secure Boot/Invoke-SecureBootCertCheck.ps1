@@ -840,7 +840,8 @@ if (-not $SkipFirmwareScan -and $uefiScriptAvailable) {
         else {
             Write-Info "DB 2023    : $dbCount of $expectedDbCount certs expected  (UEFI CA 2011 not enrolled -- 2 replacements not applicable)"
         }
-        if ($firmwareOemKekExpired) {
+        # Only surface expired OEM KEK warning when not already fully updated -- on a confirmed-updated device it is noise, not actionable.
+        if ($firmwareOemKekExpired -and -not ($firmwareKek2023Present -and $uefiStatus -eq 'Updated')) {
             Write-Warn 'One or more OEM KEK entries have already expired.  This may cause Firmware_Unknown errors.'
         }
     }
