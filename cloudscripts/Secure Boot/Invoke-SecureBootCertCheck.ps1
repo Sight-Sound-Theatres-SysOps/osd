@@ -1355,6 +1355,69 @@ Write-Host "  Status file : $StatusFilePath" -ForegroundColor DarkGray
 Write-Host "  Log file    : $(Join-Path (Split-Path $StatusFilePath) 'check.log')" -ForegroundColor DarkGray
 Write-Host ''
 
+# ── Post-verdict BIOS update offer ────────────────────────────────────────────
+# Offer a BIOS update regardless of cert status, as long as one is available
+# and wasn't already applied during remediation earlier in this run.
+# This catches the case where certs are fully updated but the BIOS is still old.
+$biosAlreadyHandled = $actionsTaken -match 'BIOS update'
+if ($biosUpdateAvailable -and -not $biosAlreadyHandled) {
+    Write-Host '  ----------------------------------------------------------------' -ForegroundColor DarkGray
+    if ($isDell -and $osdAvailable) {
+        Write-Host '  A newer BIOS version is available for this device.' -ForegroundColor Cyan
+        Write-Host "  Current : $biosVersion    Latest : $latestBiosVersion" -ForegroundColor Cyan
+        Write-Host '  Updating the BIOS is recommended for security and stability' -ForegroundColor Cyan
+        Write-Host '  even if Secure Boot certificates are already up to date.' -ForegroundColor Cyan
+        Write-Host '  ----------------------------------------------------------------' -ForegroundColor DarkGray
+        Write-Host ''
+        Write-Warn 'Before updating, note:'
+        Write-Info '  - BitLocker will be suspended automatically for one reboot cycle.'
+        Write-Info '  - The update stages now and applies on the next reboot.'
+        Write-Info '  - The screen may be black for 1-3 minutes after reboot during the flash.  This is normal.'
+        Write-Info '  - Do NOT power off the device during this time.'
+
+        if (Prompt-YesNo -Question 'Update BIOS now?' -Default 'N') {
+            if (Prompt-YesNo -Question 'Confirm -- understood the above warnings?' -Default 'N') {
+                try {
+                    Update-MyDellBIOS -ErrorAction Stop
+                    Write-Pass "BIOS update staged: $biosVersion -> $latestBiosVersion"
+                    Write-Log  "Post-verdict BIOS update staged: $latestBiosVersion"
+                    # Update status file to record the action
+                    $actionsTaken += "BIOS update staged post-verdict ($latestBiosVersion)"
+                    Invoke-RebootPrompt -Reason 'BIOS update staged -- reboot to apply firmware flash'
+                }
+                catch {
+                    Write-Fail "BIOS update failed: $($_.Exception.Message)"
+                    Write-Log  "ERROR: Post-verdict BIOS update failed -- $($_.Exception.Message)"
+                }
+            }
+            else {
+                Write-Info 'BIOS update deferred.'
+                Write-Log  'Post-verdict BIOS update offered but deferred by operator'
+            }
+        }
+        else {
+            Write-Info 'BIOS update deferred.  Run Dell Command Update or visit dell.com/support to update later.'
+            Write-Log  'Post-verdict BIOS update offered but deferred by operator'
+        }
+    }
+    else {
+        # Non-Dell or OSD not available -- can't trigger update automatically
+        Write-Host '  A newer BIOS version may be available for this device.' -ForegroundColor Cyan
+        Write-Host "  Current BIOS : $biosVersion" -ForegroundColor Cyan
+        Write-Host '  ----------------------------------------------------------------' -ForegroundColor DarkGray
+        Write-Info 'To check for and install a BIOS update, visit your OEM support site:'
+        if ($isDell) {
+            Write-Info "  https://www.dell.com/support/home/en-us/product-support/servicetag/$serviceTag/drivers"
+        }
+        else {
+            Write-Info "  Search '$manufacturer $model BIOS update' on your OEM support site."
+        }
+        Write-Info 'Filter by category BIOS and install the latest version.'
+        Write-Log  'Post-verdict: non-Dell BIOS update notice shown'
+    }
+    Write-Host ''
+}
+
 <#
 VALIDATION STEPS
 ----------------
