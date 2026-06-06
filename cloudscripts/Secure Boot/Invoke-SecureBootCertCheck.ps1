@@ -535,7 +535,7 @@ Clear-Host
 Write-Host ''
 Write-Host '  ================================================================' -ForegroundColor Cyan
 Write-Host '   Secure Boot Certificate Assessment and Remediation Tool' -ForegroundColor Cyan
-Write-Host '   Sight and Sound Theatres -- Systems Engineering' -ForegroundColor Cyan
+Write-Host '   Sight and Sound Theatres -- Matthew Miles' -ForegroundColor Cyan
 Write-Host "   $env:COMPUTERNAME  --  $(Get-Date -Format 'yyyy-MM-dd  HH:mm:ss')" -ForegroundColor Cyan
 Write-Host '  ================================================================' -ForegroundColor Cyan
 
