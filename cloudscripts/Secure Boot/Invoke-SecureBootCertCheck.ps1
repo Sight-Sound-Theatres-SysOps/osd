@@ -924,13 +924,13 @@ if ($fullyUpdated -and -not $hardwareIncompatible) {
 elseif ($hardwareIncompatible) {
     $verdictCode    = 'HARDWARE_INCOMPATIBLE'
     $verdictMessage = 'HARDWARE INCOMPATIBLE -- Document and flag for replacement.'
-    $verdictColor   = 'Magenta'
+    $verdictColor   = 'Red'
     $flagForReplacement = $true
 
     Write-Host ''
-    Write-Host '  ================================================================' -ForegroundColor Magenta
-    Write-Host '   HARDWARE INCOMPATIBLE -- KEK UPDATE CANNOT BE APPLIED'         -ForegroundColor Magenta
-    Write-Host '  ================================================================' -ForegroundColor Magenta
+    Write-Host '  ================================================================' -ForegroundColor Red
+    Write-Host '   HARDWARE INCOMPATIBLE -- KEK UPDATE CANNOT BE APPLIED'         -ForegroundColor Red
+    Write-Host '  ================================================================' -ForegroundColor Red
     Write-Fatal "  Device       : $env:COMPUTERNAME"
     Write-Fatal "  Model        : $manufacturer $model"
     Write-Fatal "  Service Tag  : $serviceTag"
@@ -1177,8 +1177,8 @@ switch ($verdictCode) {
         Write-Host '   Next step: Reboot complete.  Re-run this script to confirm status.' -ForegroundColor Yellow
     }
     'HARDWARE_INCOMPATIBLE' {
-        Write-Host '   Next step: Hand this device to your supervisor -- flagged for replacement.' -ForegroundColor Magenta
-        Write-Host "              Record service tag $serviceTag in the exception list." -ForegroundColor Magenta
+        Write-Host '   Next step: Document this device as a hardware limitation exception.' -ForegroundColor Red
+        Write-Host '              Exclude from Intune KEK compliance policies and flag for refresh.' -ForegroundColor Red
     }
     'REMEDIATION_FAILED' {
         Write-Host '   Next step: Escalate to supervisor.  Check log for error details.' -ForegroundColor Red
