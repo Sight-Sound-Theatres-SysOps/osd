@@ -82,19 +82,22 @@ if ($PSVersionTable.PSEdition -eq 'Core') {
         Write-Host '         Please run this script from Windows PowerShell 5.1 (powershell.exe).' -ForegroundColor Red
         exit 1
     }
-    # Pass through any parameters that were supplied
-    $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
-    if ($StatusFilePath  -ne 'C:\ProgramData\SecureBootCertCheck\status.json') {
-        $argList += " -StatusFilePath `"$StatusFilePath`""
-    }
-    if ($SkipFirmwareScan) { $argList += ' -SkipFirmwareScan' }
-    if ($SkipBiosCheck)    { $argList += ' -SkipBiosCheck' }
 
-    # Add -NoExit equivalent by appending a pause so the 5.1 window stays open
-    # after the script finishes -- otherwise it closes immediately when launched
-    # from a remote menu or IEX context and the tech can't read the results.
-    $argList += "; Write-Host ''; Write-Host '  Press any key to close this window...' -ForegroundColor DarkGray; `$null = `$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')"
-    Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Verb RunAs -Wait
+    # Build parameter string to pass through to the relaunched session
+    $passParams = ''
+    if ($StatusFilePath -ne 'C:\ProgramData\SecureBootCertCheck\status.json') {
+        $passParams += " -StatusFilePath '$StatusFilePath'"
+    }
+    if ($SkipFirmwareScan) { $passParams += ' -SkipFirmwareScan' }
+    if ($SkipBiosCheck)    { $passParams += ' -SkipBiosCheck' }
+
+    # Use -Command instead of -File so we can append a pause after the script
+    # finishes.  -File ignores anything after the script path, but -Command
+    # lets us chain statements with semicolons.
+    $cmd = "& { & '$scriptPath'$passParams; Write-Host ''; Write-Host '  Press any key to close this window...' -ForegroundColor DarkGray; `$null = `$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') }"
+    Start-Process -FilePath 'powershell.exe' `
+        -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command $cmd" `
+        -Verb RunAs -Wait
     exit
 }
 
