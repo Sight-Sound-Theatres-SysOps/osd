@@ -351,12 +351,108 @@ $AppSecret = $creds.appsecret
 # Force TLS 1.2 protocol
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Install and force the latest NuGet package provider
-Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+function Step-installCertificates {
+    # Define an array of certificates to install
+    $certs = @(
+        @{
+            Name        = "Cisco Umbrella"
+            Url         = "https://ssintunedata.blob.core.windows.net/cert/Cisco_Umbrella_Root_CA.cer"
+            FileName    = "Cisco_Umbrella_Root_CA.cer"
+            IssuerMatch = "*Cisco Umbrella*"
+        }
+        # To add another certificate, add another hashtable here.
+    )
 
-# Re-register and trust the PowerShell Gallery
-Register-PSRepository -Default -Verbose
-Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+    # Set the directory where certificates will be temporarily stored
+    $certDirectory = "C:\OSDCloud\Temp"
+
+    # Ensure the directory exists
+    if (-not (Test-Path -Path $certDirectory)) {
+        Write-Host -ForegroundColor Cyan "[→] Directory $certDirectory does not exist. Creating it..."
+        New-Item -Path $certDirectory -ItemType Directory | Out-Null
+    }
+
+    # Loop through each certificate definition
+    foreach ($cert in $certs) {
+
+        # Check if the certificate is already installed by matching the issuer name
+        $certExists = Get-ChildItem -Path 'Cert:\LocalMachine\Root\' |
+                      Where-Object { $_.Issuer -like $cert.IssuerMatch }
+
+        if ($certExists) {
+            Write-Host -ForegroundColor DarkGray "[✓] $($cert.Name) root certificate is already installed"
+        }
+        else {
+            Write-Host -ForegroundColor Cyan "[→] Installing $($cert.Name) root certificate"
+
+            # Define the full file path for the downloaded certificate
+            $certFile = Join-Path -Path $certDirectory -ChildPath $cert.FileName
+
+            # Download the certificate
+            Invoke-WebRequest -Uri $cert.Url -OutFile $certFile
+
+            # Load the certificate from the file
+            $Certificate = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
+            $Certificate.Import($certFile)
+
+            # Open the local machine Root store in ReadWrite mode, add the certificate, then close the store
+            $Store = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
+            $Store.Open("ReadWrite")
+            $Store.Add($Certificate)
+            $Store.Close()
+
+            # Clean up the downloaded file
+            Remove-Item $certFile -Force
+        }
+    }
+}
+
+Step-installCertificates
+
+function Step-InstallPackageManagement {
+    [CmdletBinding()]
+    param ()
+    
+    $InstalledModule = Get-PackageProvider -Name PowerShellGet | Where-Object {$_.Version -ge '2.2.5'} | Sort-Object Version -Descending | Select-Object -First 1
+    if (-not ($InstalledModule)) {
+        Write-Host -ForegroundColor Cyan "[→] Install-PackageProvider PowerShellGet -MinimumVersion 2.2.5"
+        Install-PackageProvider -Name PowerShellGet -MinimumVersion 2.2.5 -Force -Scope AllUsers | Out-Null
+        Import-Module PowerShellGet -Force -Scope Global -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 5
+    }
+
+    $InstalledModule = Get-Module -Name PackageManagement -ListAvailable | Where-Object {$_.Version -ge '1.4.8.1'} | Sort-Object Version -Descending | Select-Object -First 1
+    if (-not ($InstalledModule)) {
+        Write-Host -ForegroundColor Cyan "[→] Install-Module PackageManagement -MinimumVersion 1.4.8.1"
+        Install-Module -Name PackageManagement -MinimumVersion 1.4.8.1 -Force -Confirm:$false -Source PSGallery -Scope AllUsers
+        Import-Module PackageManagement -Force -Scope Global -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 5
+    }
+
+    Import-Module PackageManagement -Force -Scope Global -ErrorAction SilentlyContinue
+    $InstalledModule = Get-Module -Name PackageManagement -ListAvailable | Where-Object {$_.Version -ge '1.4.8.1'} | Sort-Object Version -Descending | Select-Object -First 1
+    if ($InstalledModule) {
+        Write-Host -ForegroundColor DarkGray "[✓] PackageManagement $([string]$InstalledModule.Version)"
+    }
+    Import-Module PowerShellGet -Force -Scope Global -ErrorAction SilentlyContinue
+    $InstalledModule = Get-PackageProvider -Name PowerShellGet | Where-Object {$_.Version -ge '2.2.5'} | Sort-Object Version -Descending | Select-Object -First 1
+    if ($InstalledModule) {
+        Write-Host -ForegroundColor DarkGray "[✓] PowerShellGet $([string]$InstalledModule.Version)"
+    }
+}
+function Step-TrustPSGallery {
+    [CmdletBinding()]
+    param ()
+    
+    $PowerShellGallery = Get-PSRepository -Name PSGallery -ErrorAction Ignore
+    if ($PowerShellGallery.InstallationPolicy -ne 'Trusted') {
+        Write-Host -ForegroundColor Cyan "[→] Set-PSRepository PSGallery Trusted"
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+    }
+    if ($PowerShellGallery.InstallationPolicy -eq 'Trusted') {
+        Write-Host -ForegroundColor DarkGray "[✓] PSRepository PSGallery Trusted"
+    }
+}
 
 Write-Host -ForegroundColor Yellow "[-] Installing Get-WindowsAutopilotInfo script..."
 try {
@@ -367,6 +463,9 @@ catch {
     Write-Host -ForegroundColor Red "[!] Failed to install script: $_"
     exit 1
 }
+
+Step-InstallPackageManagement
+Step-TrustPSGallery
 
 # ============================================================================
 # Run Autopilot registration
