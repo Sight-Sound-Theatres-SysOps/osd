@@ -346,41 +346,21 @@ $AppSecret = $creds.appsecret
 
 # ============================================================================
 # Install Get-WindowsAutopilotInfo script
-# PSGallery v2 API is deprecated; use Install-PSResource (v3) instead.
-# Bootstrap Microsoft.PowerShell.PSResourceGet from NuGet.org if needed.
 # ============================================================================
+
+# Force TLS 1.2 protocol
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+# Install and force the latest NuGet package provider
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+
+# Re-register and trust the PowerShell Gallery
+Register-PSRepository -Default -Verbose
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+
 Write-Host -ForegroundColor Yellow "[-] Installing Get-WindowsAutopilotInfo script..."
 try {
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-    if (-not (Get-Command -Name Install-PSResource -ErrorAction SilentlyContinue)) {
-        Write-Host -ForegroundColor Yellow "  [-] Bootstrapping Microsoft.PowerShell.PSResourceGet from NuGet.org..."
-
-        $versionJson = Invoke-RestMethod `
-            -Uri 'https://api.nuget.org/v3-flatcontainer/microsoft.powershell.psresourceget/index.json' `
-            -UseBasicParsing -ErrorAction Stop
-        $latestVer = $versionJson.versions | Select-Object -Last 1
-        $nupkgUrl  = "https://api.nuget.org/v3-flatcontainer/microsoft.powershell.psresourceget/$latestVer/microsoft.powershell.psresourceget.$latestVer.nupkg"
-        $nupkgZip  = "$env:TEMP\PSResourceGet.zip"
-
-        Invoke-WebRequest -Uri $nupkgUrl -OutFile $nupkgZip -UseBasicParsing -ErrorAction Stop
-
-        $extractDir = "$env:TEMP\PSResourceGet_extract"
-        Expand-Archive -Path $nupkgZip -DestinationPath $extractDir -Force
-
-        $destModule = "$env:ProgramFiles\WindowsPowerShell\Modules\Microsoft.PowerShell.PSResourceGet"
-        New-Item -ItemType Directory -Path $destModule -Force | Out-Null
-        Get-ChildItem -Path $extractDir -Exclude '_rels', 'package', '[Content_Types].xml', '*.nuspec' |
-            Copy-Item -Destination $destModule -Recurse -Force
-
-        Remove-Item $nupkgZip -Force -ErrorAction SilentlyContinue
-        Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
-
-        Import-Module Microsoft.PowerShell.PSResourceGet -Force -ErrorAction Stop
-        Write-Host -ForegroundColor Green "  [+] PSResourceGet bootstrapped successfully"
-    }
-
-    Install-PSResource -Name Get-WindowsAutopilotInfo -Scope AllUsers -TrustRepository -Reinstall -ErrorAction Stop
+    Install-Script -Name Get-WindowsAutopilotInfo -Force -ErrorAction Stop
     Write-Host -ForegroundColor Green "[+] Script installed successfully"
 }
 catch {
