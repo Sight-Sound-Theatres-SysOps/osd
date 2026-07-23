@@ -461,6 +461,7 @@ Write-Host -ForegroundColor Yellow "[-] Installing Get-WindowsAutopilotInfo scri
 try {
     Install-Script -Name Get-WindowsAutopilotInfo -Force -ErrorAction Stop
     Write-Host -ForegroundColor Green "[+] Script installed successfully"
+    
 }
 catch {
     Write-Host -ForegroundColor Red "[!] Failed to install script: $_"
@@ -474,7 +475,8 @@ Write-Host -ForegroundColor Yellow "[-] Registering device with Windows Autopilo
 Write-Host ""
 
 try {
-    Get-WindowsAutopilotInfo.ps1 `
+    $autopilotScript = "$env:ProgramFiles\WindowsPowerShell\Scripts\Get-WindowsAutopilotInfo.ps1"
+    & $autopilotScript `
         -Online `
         -Assign `
         -GroupTag $GroupTag `
