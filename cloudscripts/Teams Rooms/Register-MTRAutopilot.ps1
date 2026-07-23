@@ -454,6 +454,9 @@ function Step-TrustPSGallery {
     }
 }
 
+Step-InstallPackageManagement
+Step-TrustPSGallery
+
 Write-Host -ForegroundColor Yellow "[-] Installing Get-WindowsAutopilotInfo script..."
 try {
     Install-Script -Name Get-WindowsAutopilotInfo -Force -ErrorAction Stop
@@ -463,9 +466,6 @@ catch {
     Write-Host -ForegroundColor Red "[!] Failed to install script: $_"
     exit 1
 }
-
-Step-InstallPackageManagement
-Step-TrustPSGallery
 
 # ============================================================================
 # Run Autopilot registration
