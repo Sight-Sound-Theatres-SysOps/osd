@@ -64,6 +64,61 @@ function Install-Curl {
 
 Install-Curl
 
+# Check for required .NET Desktop Runtime version and install if missing
+function Test-DotNetDesktopRuntime {
+    [CmdletBinding()]
+    param (
+        [string]$RequiredVersion = "10.0.12"
+    )
+
+    $dotnetCmd = Get-Command 'dotnet.exe' -ErrorAction SilentlyContinue
+    if (-not $dotnetCmd) {
+        return $false
+    }
+
+    $runtimes = & dotnet.exe --list-runtimes 2>$null
+    $match = $runtimes | Where-Object { $_ -match "^Microsoft\.WindowsDesktop\.App $([regex]::Escape($RequiredVersion))\b" }
+    return [bool]$match
+}
+
+function Install-DotNetDesktopRuntime {
+    [CmdletBinding()]
+    param (
+        [string]$Version = "10.0.12"
+    )
+
+    $url = "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/$Version/windowsdesktop-runtime-$Version-win-x64.exe"
+    $outputDir = "C:\temp"
+    $outputFile = Join-Path $outputDir "windowsdesktop-runtime-$Version-win-x64.exe"
+
+    if (!(Test-Path $outputDir)) {
+        New-Item -ItemType Directory -Path $outputDir | Out-Null
+    }
+
+    Write-Host -ForegroundColor Yellow "[!] Downloading .NET Desktop Runtime $Version..."
+    curl.exe -o $outputFile $url
+
+    Write-Host -ForegroundColor Yellow "[-] Installing .NET Desktop Runtime $Version..."
+    $process = Start-Process -FilePath $outputFile -ArgumentList "/install", "/quiet", "/norestart" -Wait -PassThru
+    if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 3010) {
+        Write-Host -ForegroundColor Green "[+] .NET Desktop Runtime $Version installed successfully"
+    }
+    else {
+        Write-Host -ForegroundColor Red "[x] .NET Desktop Runtime install exited with code $($process.ExitCode)"
+    }
+
+    Remove-Item -Path $outputFile -Force -ErrorAction SilentlyContinue
+}
+
+$requiredDotNetVersion = "10.0.12"
+if (Test-DotNetDesktopRuntime -RequiredVersion $requiredDotNetVersion) {
+    Write-Host -ForegroundColor Green "[+] .NET Desktop Runtime $requiredDotNetVersion is already installed"
+}
+else {
+    Write-Host -ForegroundColor Yellow "[!] .NET Desktop Runtime $requiredDotNetVersion not found"
+    Install-DotNetDesktopRuntime -Version $requiredDotNetVersion
+}
+
 # Download and install the StoreCommerce app 
 ########################################################
 
