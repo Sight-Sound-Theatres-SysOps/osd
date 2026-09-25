@@ -142,11 +142,8 @@ Write-host -ForegroundColor yellow "[!] Downloading StoreCommerce.Installer.exe"
 curl.exe -o $outputFile $url
 
 # Run the installer with the provided arguments
-$installArgs = 'install', '--useremoteappcontent', '--retailserverurl', 'https://sst-prodret.operations.dynamics.com/Commerce'
-$process = Start-Process -FilePath $outputFile -ArgumentList $installArgs -Wait -PassThru
-if ($process.ExitCode -ne 0) {
-    Write-Host -ForegroundColor Red "[x] StoreCommerce install exited with code $($process.ExitCode)"
-}
+cd $outputDir
+.\StoreCommerce.Installer.exe install --useremoteappcontent --retailserverurl "https://sst-prodret.operations.dynamics.com/Commerce"
 
 
 # Reset execution policy to Restricted if it isn't already
