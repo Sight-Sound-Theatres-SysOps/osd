@@ -4,18 +4,11 @@
 #                                          #
 ############################################
 
-# Must be run as the posuser account (the one actually logged in at the register)
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    if ($env:USERNAME -ne 'posuser') {
-        Write-Warning "This script must be run from the 'posuser' account. Currently logged in as '$env:USERNAME'. Restart PowerShell as posuser and try again."
-        exit 1
-    }
-
-    # Relaunch elevated once so every install/uninstall step below inherits the elevated token instead of prompting again.
-    # Uses the UAC/WAM broker prompt (not Start-Process -Credential/LogonUser), which supports Entra ID-only admin accounts.
-    Write-Host -ForegroundColor Yellow "[!] Relaunching elevated - approve the UAC prompt with your admin account..."
-    Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`""
-    exit
+# Must be run as the posuser account (the one actually logged in at the register) so per-user
+# app installs/uninstalls stay in posuser's context; each admin-required step below elevates on its own.
+if ($env:USERNAME -ne 'posuser') {
+    Write-Warning "This script must be run from the 'posuser' account. Currently logged in as '$env:USERNAME'. Restart PowerShell as posuser and try again."
+    exit 1
 }
 
 # Uninstall existing StoreCommerce app
