@@ -4,11 +4,22 @@
 #                                          #
 ############################################
 
+# Must be run as the posuser account (the one actually logged in at the register)
+if ($env:USERNAME -ne 'posuser') {
+    Write-Warning "This script must be run from the 'posuser' account. Currently logged in as '$env:USERNAME'. Restart PowerShell as posuser and try again."
+    exit 1
+}
+
+# Prompt once for admin credentials, reused for every elevation-required step below
+$adminCred = Get-Credential -Message "Enter local admin credentials to install POS components"
 
 # Uninstall existing StoreCommerce app
 function Uninstall-StoreCommerce {
     [CmdletBinding()]
-    param ()
+    param (
+        [Parameter(Mandatory)]
+        [PSCredential]$Credential
+    )
 
     Write-Host -ForegroundColor Yellow "[!] Attempting to uninstall existing StoreCommerce app..."
 
@@ -16,7 +27,7 @@ function Uninstall-StoreCommerce {
     $installerPath = "C:\temp\StoreCommerce.Installer.exe"
     if (Test-Path $installerPath) {
         Write-Host -ForegroundColor Yellow "[-] Running StoreCommerce.Installer.exe uninstall..."
-        $process = Start-Process -FilePath $installerPath -ArgumentList "uninstall" -Wait -PassThru
+        $process = Start-Process -FilePath $installerPath -ArgumentList "uninstall" -Credential $Credential -Wait -PassThru
         if ($process.ExitCode -eq 0) {
             Write-Host -ForegroundColor Green "[+] StoreCommerce uninstalled successfully via installer"
             return
@@ -31,7 +42,9 @@ function Uninstall-StoreCommerce {
     if ($appxPackage) {
         foreach ($pkg in $appxPackage) {
             Write-Host -ForegroundColor Yellow "[-] Removing AppxPackage: $($pkg.PackageFullName)"
-            Remove-AppxPackage -Package $pkg.PackageFullName -AllUsers -ErrorAction SilentlyContinue
+            # Remove-AppxPackage -AllUsers needs an elevated session, so run it in a child process under the admin credential
+            $removeCmd = "Remove-AppxPackage -Package '$($pkg.PackageFullName)' -AllUsers -ErrorAction SilentlyContinue"
+            Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-Command', $removeCmd -Credential $Credential -Wait
         }
         Write-Host -ForegroundColor Green "[+] StoreCommerce AppxPackage removed"
         return
@@ -40,7 +53,7 @@ function Uninstall-StoreCommerce {
     Write-Host -ForegroundColor Cyan "[i] No existing StoreCommerce installation found"
 }
 
-Uninstall-StoreCommerce
+Uninstall-StoreCommerce -Credential $adminCred
 
 # Check Curl version and install if necessary
 function Install-Curl {
@@ -84,7 +97,9 @@ function Test-DotNetDesktopRuntime {
 function Install-DotNetDesktopRuntime {
     [CmdletBinding()]
     param (
-        [string]$Version = "10.0.12"
+        [string]$Version = "10.0.12",
+        [Parameter(Mandatory)]
+        [PSCredential]$Credential
     )
 
     $url = "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/$Version/windowsdesktop-runtime-$Version-win-x64.exe"
@@ -99,7 +114,7 @@ function Install-DotNetDesktopRuntime {
     curl.exe -o $outputFile $url
 
     Write-Host -ForegroundColor Yellow "[-] Installing .NET Desktop Runtime $Version..."
-    $process = Start-Process -FilePath $outputFile -ArgumentList "/install", "/quiet", "/norestart" -Wait -PassThru
+    $process = Start-Process -FilePath $outputFile -ArgumentList "/install", "/quiet", "/norestart" -Credential $Credential -Wait -PassThru
     if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 3010) {
         Write-Host -ForegroundColor Green "[+] .NET Desktop Runtime $Version installed successfully"
     }
@@ -116,7 +131,7 @@ if (Test-DotNetDesktopRuntime -RequiredVersion $requiredDotNetVersion) {
 }
 else {
     Write-Host -ForegroundColor Yellow "[!] .NET Desktop Runtime $requiredDotNetVersion not found"
-    Install-DotNetDesktopRuntime -Version $requiredDotNetVersion
+    Install-DotNetDesktopRuntime -Version $requiredDotNetVersion -Credential $adminCred
 }
 
 # Download and install the StoreCommerce app 
@@ -136,8 +151,11 @@ Write-host -ForegroundColor yellow "[!] Downloading StoreCommerce.Installer.exe"
 curl.exe -o $outputFile $url
 
 # Run the installer with the provided arguments
-cd $outputDir
-.\StoreCommerce.Installer.exe install --useremoteappcontent --retailserverurl "https://sst-prodret.operations.dynamics.com/Commerce"
+$installArgs = 'install', '--useremoteappcontent', '--retailserverurl', 'https://sst-prodret.operations.dynamics.com/Commerce'
+$process = Start-Process -FilePath $outputFile -ArgumentList $installArgs -Credential $adminCred -Wait -PassThru
+if ($process.ExitCode -ne 0) {
+    Write-Host -ForegroundColor Red "[x] StoreCommerce install exited with code $($process.ExitCode)"
+}
 
 
 # Reset execution policy to Restricted if it isn't already
