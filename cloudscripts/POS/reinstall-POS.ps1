@@ -151,3 +151,7 @@ if ((Get-ExecutionPolicy -Scope CurrentUser) -ne 'Restricted') {
     Write-Host -ForegroundColor Yellow "[!] Resetting ExecutionPolicy to Restricted for CurrentUser"
     Set-ExecutionPolicy Restricted -Scope CurrentUser -Force
 }
+
+# Copy Commerce URL to clipboard for convenience
+Set-Clipboard -Value "https://sst-prodpos.operations.dynamics.com"
+Write-Host -ForegroundColor Green "[+] Commerce URL copied to clipboard"
