@@ -1,6 +1,6 @@
 ############################################
 #                                          # 
-#  Reinstall StoreCommerce POS             #
+#  Reinstall Store Commerce POS            #
 #                                          #
 ############################################
 
